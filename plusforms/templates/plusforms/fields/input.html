@@ -1,0 +1,25 @@
+{% load cms_tags %}
+{% spaceless %}
+  <div class="form-group">
+    {% if field.label %}
+      <label for="{{ field.id }}">{{ field.label }}</label>
+    {% endif %}
+
+    {% if field.widget.template_name %}
+      {% include field.widget.template_name with widget=field.widget %}
+    {% endif %}
+
+    {% if errors %}
+      <div class="invalid-feedback">
+        {{ errors|join:". " }}
+      </div>
+    {% endif %}
+
+    {% if field.help_text %}
+      <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
+    {% for plugin in instance.child_plugin_instances %}
+      {% render_plugin plugin %}
+    {% endfor %}
+  </div>
+{% endspaceless %}

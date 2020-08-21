@@ -1,0 +1,23 @@
+{% load cms_tags %}
+{% spaceless %}
+  <div class="form-group">
+    <div class="form-check">
+
+      {% if field.widget.template_name %}
+        {% include field.widget.template_name with widget=field.widget %}
+      {% endif %}
+
+      <label class="form-check-label" for="{{ field.id }}">
+        {{ field.label }}
+        {% for plugin in instance.child_plugin_instances %}
+          {% render_plugin plugin %}
+        {% endfor %}
+      </label>
+      {% if errors %}
+        <div class="invalid-feedback">
+          {{ errors|join:". " }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endspaceless %}

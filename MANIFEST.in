@@ -1,0 +1,5 @@
+include LICENSE
+include README.md
+recursive-include plusforms/templates *
+recursive-include plusforms/static *
+recursive-include plusforms *.py
