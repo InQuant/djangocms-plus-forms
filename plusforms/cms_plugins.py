@@ -1,12 +1,8 @@
-import sys
 from pprint import pprint
 
-from cms.models import CMSPlugin
 from cms.plugin_pool import plugin_pool
 from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
 from django import forms
-from django.conf import settings
-from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
@@ -17,7 +13,8 @@ from plusforms.models import SubmittedForm
 class GenericFormPluginForm(PlusPluginFormBase):
     form_id = forms.SlugField(label=_('Form identifier'), required=True)
 
-    success_text = forms.CharField(label=_('Text bei erfolgreicher Übertragung'), widget=forms.Textarea)
+    success_text = forms.CharField(label=_('Success text'), widget=forms.Textarea)
+    button_text = forms.CharField(label=_('Submit button text'), required=True, initial=_('Submit'))
 
     name = forms.CharField(label=_('Name'), required=False)
     description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea)
@@ -35,7 +32,7 @@ class GenericFormPlugin(PlusPluginBase):
     @staticmethod
     def field_plugins(instance):
         children = []
-        for child in instance.child_plugin_instances:
+        for child in instance.child_plugin_instances or []:
             if child.plugin_type == 'GenericFieldPlugin':
                 children.append(child)
         return children
@@ -60,10 +57,17 @@ class GenericFormPlugin(PlusPluginBase):
 
             form_data[field.widget.name] = value
 
+        pprint(request.META)
         obj = SubmittedForm.objects.create(
             by_user=request.user if request.user.is_authenticated else None,
             form=instance,
-            form_data=form_data
+            form_data=form_data,
+            meta_data={
+                'host': request.META.get('HTTP_HOST'),
+                'origin': request.META.get('HTTP_ORIGIN'),
+                'referrer': request.META.get('HTTP_REFERER'),
+                'user_agent': request.META.get('HTTP_USER_AGENT'),
+            }
         )
         if not obj:
             return

@@ -1,0 +1,39 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block after_related_objects %}
+  {{ block.super }}
+
+  {% if link_to_page != None %}
+    <a href="{{ link_to_page }}" target="_blank">{% trans 'Show form on page' %}</a>
+  {% endif %}
+
+  <hr style="margin: 3rem 0">
+  <h3 style="margin-bottom: 1rem">Form data</h3>
+  <table>
+    <tbody>
+    {% for key, value in original.form_data.items %}
+      <tr>
+        <td style="padding: .5rem .5rem .5rem 0;"><span style="font-weight: bolder">{{ key }}</span></td>
+        <td style="padding: .5rem;">{{ value }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% if original.meta_data %}
+    <hr style="margin: 3rem 0">
+    <h3 style="margin-bottom: 1rem">Meta Data</h3>
+    <table>
+      <tbody>
+      {% for key, value in original.meta_data.items %}
+        <tr>
+          <td style="padding: .5rem .5rem .5rem 0;"><span style="font-weight: bolder">{{ key }}</span></td>
+          <td style="padding: .5rem;">{{ value }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+{% endblock %}

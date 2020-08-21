@@ -13,5 +13,5 @@
   {% endfor %}
 
   <input type="hidden" name="form-{{ instance.id }}" value="submit">
-  <button type="submit" class="btn btn-primary">Save</button>
+  <button type="submit" class="btn btn-primary">{{ instance.glossary.button_text }}</button>
 </form>
