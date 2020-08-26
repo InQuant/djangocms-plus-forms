@@ -18,4 +18,4 @@ class SubmittedForm(models.Model):
         if not self.form:
             return super(SubmittedForm, self).__str__()
         pi, pc = self.form.get_plugin_instance()
-        return pi.glossary.get('name')
+        return pi.glossary.get('name') or pi.glossary.get('form_id')
