@@ -89,12 +89,16 @@ class GenericFormPlugin(PlusPluginBase):
 
 class FormFieldPluginForm(PlusPluginFormBase):
     field_type = forms.ChoiceField()
-    field_id = forms.SlugField(label=_('Field ID'), help_text=_('This will be the id and name attribute of this input'),
-                               required=True)
+    field_id = forms.SlugField(
+        label=_('Identifier'),
+        help_text=_('This will be the id and name attribute of this input. Needs to be unique inside a form!'),
+        required=True
+    )
+
     required = forms.BooleanField(label=_('Required'), initial=False, required=False)
 
-    label = forms.CharField(label=_('Field label'), required=False)
-    help_text = forms.CharField(label=_('Field\'s help text'), required=False)
+    label = forms.CharField(label=_('Label'), required=False)
+    help_text = forms.CharField(label=_('Help text'), required=False)
     field_placeholder = forms.CharField(label=_('Placeholder'), required=False)
 
     @staticmethod

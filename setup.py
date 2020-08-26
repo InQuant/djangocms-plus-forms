@@ -29,14 +29,14 @@ TESTS_REQUIRE = ['tox >= 2.3']
 
 
 setup(
-    name='plusforms',
+    name='djangocms-plus-forms',
     version='0.1.0',
     author='Dominik Lysiak',
     author_email='dominik.lysiak@freenet.de',
     packages=['plusforms'],
-    url='https://github.com/domlysi/plusforms',
+    url='https://github.com/InQuant/djangocms-plus-forms',
     license='MIT',
-    description='A simple but effective description.',
+    description='A generic form plugin for the djangocms (plus) framework.',
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     zip_safe=False,
