@@ -19,6 +19,13 @@ class GenericFormPluginForm(PlusPluginFormBase):
     name = forms.CharField(label=_('Name'), required=False)
     description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea)
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 @plugin_pool.register_plugin
 class GenericFormPlugin(PlusPluginBase):
@@ -67,6 +74,7 @@ class GenericFormPlugin(PlusPluginBase):
                 'origin': request.META.get('HTTP_ORIGIN'),
                 'referrer': request.META.get('HTTP_REFERER'),
                 'user_agent': request.META.get('HTTP_USER_AGENT'),
+                'remote_ip': get_client_ip(request),
             }
         )
         if not obj:
