@@ -1,9 +1,14 @@
-from pprint import pprint
+import os
+from uuid import uuid4
 
 from cms.plugin_pool import plugin_pool
+from cmsplus.models import PlusPlugin
 from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.forms import FileField
 from django.utils.translation import ugettext_lazy as _
 
 from plusforms.form_fields import get_available_form_fields, get_class
@@ -19,6 +24,7 @@ class GenericFormPluginForm(PlusPluginFormBase):
     name = forms.CharField(label=_('Name'), required=False)
     description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea)
 
+
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -26,6 +32,33 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+def handle_uploaded_file(f: InMemoryUploadedFile):
+    new_name = "{prefix}_{name}".format(
+        prefix=uuid4(),
+        name=f.name,
+    )
+    media_root = getattr(settings, 'MEDIA_ROOT')
+    media_url = getattr(settings, 'MEDIA_URL')
+
+    upload_folder = getattr(settings, 'PLUSFORMS_MEDIA_UPLOAD', 'plusforms')
+
+    upload_media_root = os.path.join(media_root, upload_folder)
+
+    if not os.path.exists(upload_media_root):
+        os.makedirs(upload_media_root)
+
+    path_name = os.path.join(upload_media_root, new_name)
+
+    with open(path_name, 'wb+') as destination:
+        for chunk in f.chunks():
+            destination.write(chunk)
+
+    # generate media url
+    url = os.path.join(upload_folder, new_name).split("\\")
+    return "%s%s" % (media_url, '/'.join(url))
+
 
 @plugin_pool.register_plugin
 class GenericFormPlugin(PlusPluginBase):
@@ -37,9 +70,9 @@ class GenericFormPlugin(PlusPluginBase):
     render_template = 'plusforms/base_form.html'
 
     @staticmethod
-    def field_plugins(instance):
+    def field_plugins(instance: PlusPlugin):
         children = []
-        for child in instance.child_plugin_instances or []:
+        for child in instance.get_children() or []:
             if child.plugin_type == 'GenericFieldPlugin':
                 children.append(child)
         return children
@@ -55,16 +88,22 @@ class GenericFormPlugin(PlusPluginBase):
             ci, cc = child.get_plugin_instance()
 
             field = cc.get_form_field(context, ci)
-            value = request.POST.get(field.widget.name)
 
-            try:
-                field.clean(value)
-            except ValidationError:
-                return
+            if issubclass(field.__class__, FileField):
+                files = request.FILES.getlist(field.widget.name)
+                value = []
+                for f in files:
+                    field.clean(f)
+                    value.append(handle_uploaded_file(f))
+            else:
+                value = request.POST.get(field.widget.name)
+                try:
+                    field.clean(request.FILES.getlist(field.widget.name))
+                except ValidationError:
+                    return
 
             form_data[field.widget.name] = value
 
-        pprint(request.META)
         obj = SubmittedForm.objects.create(
             by_user=request.user if request.user.is_authenticated else None,
             form=instance,

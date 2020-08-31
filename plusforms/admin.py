@@ -2,7 +2,6 @@ from pprint import pprint
 
 from django.contrib import admin
 
-from plusforms.form_fields import get_available_form_fields
 from plusforms.models import SubmittedForm
 
 
@@ -22,7 +21,7 @@ class SubmittedFormAdmin(admin.ModelAdmin):
         if obj.form:
             pi, pc = obj.form.get_plugin_instance()
             context['link_to_page'] = pi.placeholder.page.get_absolute_url()
-            pprint(context['link_to_page'])
+            context['obj_form'] = obj.form
 
         return super(SubmittedFormAdmin, self).render_change_form(request, context, add, change, form_url, obj)
 

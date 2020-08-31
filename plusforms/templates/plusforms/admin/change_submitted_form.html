@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n %}
+{% load i18n plusforms %}
 
 {% block after_related_objects %}
   {{ block.super }}
@@ -13,10 +13,21 @@
   <table>
     <tbody>
     {% for key, value in original.form_data.items %}
-      <tr>
-        <td style="padding: .5rem .5rem .5rem 0;"><span style="font-weight: bolder">{{ key }}</span></td>
-        <td style="padding: .5rem;">{{ value }}</td>
-      </tr>
+      {% with obj_form|get_field_instance_from_form:key as field_instance %}
+        <tr>
+          <td style="padding: .5rem .5rem .5rem 0;"><span style="font-weight: bolder">{{ key }}</span></td>
+          <td style="padding: .5rem .5rem .5rem 0;"> {{ field_instance.glossary.field_type }}</td>
+          <td style="padding: .5rem;">
+            {% if field_instance.glossary.field_type == 'FileField' %}
+              {% for file in value %}
+                <a href="{{ file }}" target="_blank">{{ file }}</a>
+              {% endfor %}
+            {% else %}
+              {{ value }}
+            {% endif %}
+          </td>
+        </tr>
+      {% endwith %}
     {% endfor %}
     </tbody>
   </table>

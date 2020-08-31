@@ -53,6 +53,8 @@ FORM_FIELDS = [
     'PasswordField',
     'EmailField',
     'CheckboxField',
+    'FileField',
+    'ImageField',
 ]
 
 
@@ -84,3 +86,15 @@ class CheckboxField(forms.BooleanField):
     template_name = "plusforms/fields/checkbox.html"
     widget = forms.CheckboxInput
     widget_class = 'form-check-input'
+
+
+class FileField(forms.FileField):
+    widget = forms.FileInput
+    name = _('File Field')
+    template_name = "plusforms/fields/input.html"
+
+
+class ImageField(forms.ImageField):
+    widget = forms.FileInput
+    name = _('Image Field')
+    template_name = "plusforms/fields/input.html"
