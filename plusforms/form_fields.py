@@ -4,6 +4,7 @@ import sys
 from django import forms
 from django.conf import settings
 from django.forms import Field
+from django.utils.datetime_safe import datetime
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -50,11 +51,18 @@ def get_available_form_fields():
 FORM_FIELDS = [
     'InputField',
     'TextField',
+    'DecimalField',
+    'FloatField',
+    'IntegerField',
     'PasswordField',
     'EmailField',
     'CheckboxField',
     'FileField',
     'ImageField',
+    'URLField',
+    'DateField',
+    'TimeField',
+    'DateTimeField',
 ]
 
 
@@ -98,3 +106,83 @@ class ImageField(forms.ImageField):
     widget = forms.FileInput
     name = _('Image Field')
     template_name = "plusforms/fields/input.html"
+
+
+def get_date_input_examples(FieldClass) -> list:
+    """
+    Generate examples for a valid input value.
+    :param FieldClass: InputField
+    :return: List of input examples.
+    """
+    r = []
+    for f in FieldClass.input_formats:
+        now = datetime.now()
+        r.append(now.strftime(f))
+    return r
+
+
+class DateField(forms.DateField):
+    name = _('Date Field')
+    template_name = "plusforms/fields/input.html"
+    widget = forms.DateInput
+    widget_class = 'form-control'
+
+    default_error_messages = {
+        'invalid': '%s [%s]' % (
+            forms.DateField.default_error_messages['invalid'],
+            ', '.join(get_date_input_examples(forms.DateField))
+        )
+    }
+
+
+class TimeField(forms.TimeField):
+    name = _('Time Field')
+    template_name = "plusforms/fields/input.html"
+    widget = forms.TimeInput
+    widget_class = 'form-control'
+
+    default_error_messages = {
+        'invalid': '%s. Format [%s]' % (
+            forms.TimeField.default_error_messages['invalid'],
+            ', '.join(get_date_input_examples(forms.TimeField))
+        ),
+    }
+
+
+class DateTimeField(forms.DateTimeField):
+    name = _('Date Time Field')
+    widget = forms.DateTimeInput
+    template_name = "plusforms/fields/input.html"
+    widget_class = 'form-control'
+
+    default_error_messages = {
+        'invalid': '%s [%s]' % (
+            forms.DateTimeField.default_error_messages['invalid'],
+            ', '.join(get_date_input_examples(forms.DateTimeField))
+        )
+    }
+
+
+class URLField(forms.URLField):
+    name = _('URL Field')
+    widget = forms.URLInput
+    template_name = "plusforms/fields/input.html"
+    widget_class = 'form-control'
+
+
+class IntegerField(forms.IntegerField):
+    name = _('Integer Field')
+    template_name = "plusforms/fields/input.html"
+    widget_class = 'form-control'
+
+
+class FloatField(forms.FloatField):
+    name = _('Float Field')
+    template_name = "plusforms/fields/input.html"
+    widget_class = 'form-control'
+
+
+class DecimalField(forms.DecimalField):
+    name = _('Decimal Field')
+    template_name = "plusforms/fields/input.html"
+    widget_class = 'form-control'

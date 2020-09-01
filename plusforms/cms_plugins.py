@@ -77,6 +77,12 @@ class GenericFormPlugin(PlusPluginBase):
                 children.append(child)
         return children
 
+    def post_save(self, context, instance, obj: SubmittedForm = None):
+        """
+        Hook to customize what to do after object creation.
+        """
+        pass
+
     def process_submit(self, context, instance):
         request = context.get('request')
 
@@ -84,10 +90,14 @@ class GenericFormPlugin(PlusPluginBase):
         if not request.POST.get('form-%s' % instance.id):
             return
 
+        fields_dict = {}
+
         for child in self.field_plugins(instance):
             ci, cc = child.get_plugin_instance()
 
             field = cc.get_form_field(context, ci)
+
+            fields_dict[field.widget.attrs.get('id')] = field
 
             if issubclass(field.__class__, FileField):
                 files = request.FILES.getlist(field.widget.name)
@@ -98,10 +108,11 @@ class GenericFormPlugin(PlusPluginBase):
             else:
                 value = request.POST.get(field.widget.name)
                 try:
-                    field.clean(request.FILES.getlist(field.widget.name))
-                except ValidationError:
+                    field.clean(value)
+                except ValidationError as e:
                     return
 
+            # set data
             form_data[field.widget.name] = value
 
         obj = SubmittedForm.objects.create(
@@ -119,6 +130,7 @@ class GenericFormPlugin(PlusPluginBase):
         if not obj:
             return
 
+        self.post_save(context, instance, obj)
         request.POST = {}
         return True
 
@@ -222,7 +234,7 @@ class GenericFieldPlugin(PlusPluginBase):
 
         field_kwargs = {
             'label': data.get('label', ''),
-            'help_text': data.get('help_text', data.get('value')),
+            'help_text': data.get('help_text', data.get('value', '')),
             'widget': widget,
             'required': data.get('required', False),
         }
