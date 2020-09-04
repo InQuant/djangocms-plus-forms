@@ -8,6 +8,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import IntegrityError
 from django.forms import FileField
 from django.utils.translation import ugettext_lazy as _
 
@@ -115,18 +116,23 @@ class GenericFormPlugin(PlusPluginBase):
             # set data
             form_data[field.widget.name] = value
 
-        obj = SubmittedForm.objects.create(
-            by_user=request.user if request.user.is_authenticated else None,
-            form=instance,
-            form_data=form_data,
-            meta_data={
-                'host': request.META.get('HTTP_HOST'),
-                'origin': request.META.get('HTTP_ORIGIN'),
-                'referrer': request.META.get('HTTP_REFERER'),
-                'user_agent': request.META.get('HTTP_USER_AGENT'),
-                'remote_ip': get_client_ip(request),
-            }
-        )
+        try:
+            obj = SubmittedForm.objects.create(
+                uuid=request.GET.get('fid'),
+                by_user=request.user if request.user.is_authenticated else None,
+                form=instance,
+                form_data=form_data,
+                meta_data={
+                    'host': request.META.get('HTTP_HOST'),
+                    'origin': request.META.get('HTTP_ORIGIN'),
+                    'referrer': request.META.get('HTTP_REFERER'),
+                    'user_agent': request.META.get('HTTP_USER_AGENT'),
+                    'remote_ip': get_client_ip(request),
+                }
+            )
+        except IntegrityError:
+            obj = None
+
         if not obj:
             return
 
@@ -141,6 +147,7 @@ class GenericFormPlugin(PlusPluginBase):
         )
 
     def render(self, context, instance, placeholder):
+        context['uuid'] = uuid4()
         if self.process_submit(context, instance):
             context['success'] = True
         return super(GenericFormPlugin, self).render(context, instance, placeholder)

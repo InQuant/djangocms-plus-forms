@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from cms.models import CMSPlugin
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -7,6 +9,7 @@ from jsonfield import JSONField
 class SubmittedForm(models.Model):
     form = models.ForeignKey(CMSPlugin, on_delete=models.SET_NULL, null=True, blank=True)
     by_user = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True)
+    uuid = models.UUIDField(default=uuid4(), editable=False, unique=True)
 
     form_data = JSONField(null=True, blank=True)
     meta_data = JSONField(null=True, blank=True)
