@@ -3,6 +3,9 @@ import sys
 
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.validators import FileExtensionValidator
 from django.forms import Field
 from django.utils.datetime_safe import datetime
 from django.utils.translation import ugettext_lazy as _
@@ -100,6 +103,30 @@ class FileField(forms.FileField):
     widget = forms.FileInput
     name = _('File Field')
     template_name = "plusforms/fields/input.html"
+
+    def check_size(self, value, instance):
+        """
+        Check if mb limit is set and validate
+        """
+        if isinstance(value, list):
+            for item in value:
+                self.check_size(item, instance)
+        else:
+            max_mb = instance.glossary.get('max_mb')
+            if instance and value and max_mb:
+                file_size_in_mb = value.size / (1000*1000)
+                if file_size_in_mb > max_mb:
+                    print(file_size_in_mb)
+                    raise ValidationError(_('Maximum file size exceeded. Your file: %d MB (max. %i MB)' % (file_size_in_mb, max_mb)))
+
+    def check_extension(self, value, instance):
+        if isinstance(value, list):
+            for item in value:
+                self.check_extension(item, instance)
+        else:
+            ext = instance.glossary.get('ext')
+            if instance and value and ext:
+                FileExtensionValidator(allowed_extensions=ext)(value)
 
 
 class ImageField(forms.ImageField):

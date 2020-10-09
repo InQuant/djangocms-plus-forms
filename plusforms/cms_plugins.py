@@ -8,12 +8,71 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.validators import get_available_image_extensions
 from django.db import IntegrityError
-from django.forms import FileField
 from django.utils.translation import ugettext_lazy as _
 
-from plusforms.form_fields import get_available_form_fields, get_class
+from plusforms.form_fields import get_available_form_fields, get_class, FileField
 from plusforms.models import SubmittedForm
+
+EXT_IMG_CHOICES = getattr(settings, 'PLUSFORMS_EXTENSIONS_IMAGE',
+                          tuple((ext, ext) for ext in get_available_image_extensions()))
+
+EXT_CHOICES = getattr(settings, 'PLUSFORMS_EXTENSIONS', (
+    # text
+    ('doc', 'doc'),
+    ('docx', 'docx'),
+    ('odt', 'odt'),
+    # ('pdf', 'pdf'),
+    ('rtf', 'rtf'),
+    ('txt', 'txt'),
+
+    # video
+    ('avi', 'avi'),
+    ('flv', 'flv'),
+    ('dh264oc', 'ddh264ococ'),
+    ('m4v', 'm4v'),
+    ('mov', 'mov'),
+    ('mp4', 'mp4'),
+    ('mpg', 'mpg'),
+    ('mpeg', 'mpeg'),
+    ('wmv', 'wmv'),
+    ('vob', 'vob'),
+    ('swf', 'swf'),
+    ('rm', 'rm'),
+
+    # spreadsheet
+    ('ods', 'ods'),
+    ('xls', 'xls'),
+    ('xlsx', 'xlsx'),
+    ('xlsm', 'xlsm'),
+
+    # presentation
+    ('key', 'key'),
+    ('odp', 'odp'),
+    ('pps', 'pps'),
+    ('ppt', 'ppt'),
+    ('pptx', 'pptx'),
+
+    # compressed
+    ('7z', '7z'),
+    ('rar', 'rar'),
+    ('tar.gz', 'tar.gz'),
+    ('zip', 'zip'),
+    ('z', 'z'),
+
+    # audio
+    ('aif', 'aif'),
+    ('mp3', 'mp3'),
+    ('mpa', 'mpa'),
+    ('ogg', 'ogg'),
+    ('wav', 'wav'),
+    ('wma', 'wma'),
+    ('wpl', 'wpl'),
+
+)) + EXT_IMG_CHOICES
+
+EXT_CHOICES = sorted(EXT_CHOICES, key=lambda i: i[0])
 
 
 class GenericFormPluginForm(PlusPluginFormBase):
@@ -104,7 +163,13 @@ class GenericFormPlugin(PlusPluginBase):
                 files = request.FILES.getlist(field.widget.name)
                 value = []
                 for f in files:
-                    field.clean(f)
+                    try:
+                        field.clean(f)
+                        field.check_size(f, ci)
+                        field.check_extension(f, ci)
+                    except ValidationError as e:
+                        return
+
                     value.append(handle_uploaded_file(f))
             else:
                 value = request.POST.get(field.widget.name)
@@ -167,6 +232,10 @@ class FormFieldPluginForm(PlusPluginFormBase):
     help_text = forms.CharField(label=_('Help text'), required=False)
     field_placeholder = forms.CharField(label=_('Placeholder'), required=False)
 
+    # if file or image
+    max_mb = forms.IntegerField(required=False)
+    ext = forms.MultipleChoiceField(required=False, choices=EXT_CHOICES)
+
     @staticmethod
     def get_field_type_choices():
         r = []
@@ -189,6 +258,25 @@ class GenericFieldPlugin(PlusPluginBase):
     parent_classes = ['GenericFormPlugin', ]
     allow_children = True
     form = FormFieldPluginForm
+    fieldsets = (
+        (None, {
+            'fields': (
+                'field_type',
+                'field_id',
+                'required',
+                'label',
+                'help_text',
+                'field_placeholder',
+            )
+        }),
+        (_('FileInput Options'), {
+            'classes': ('file_input--wrapper',),
+            'fields': ('max_mb', 'ext'),
+        }),
+    )
+
+    class Media:
+        js = ['plusform/admin/js/field.js']
 
     @staticmethod
     def get_field_class(instance):
@@ -262,9 +350,23 @@ class GenericFieldPlugin(PlusPluginBase):
         field = self.get_form_field(context, instance)
         value = request.POST.get(field.widget.name)
 
+        if not value and request.FILES:
+            value = request.FILES.getlist(field.widget.name)
+
         if request.POST and request.POST.get('form-%s' % instance.parent_id):
             try:
-                value = field.clean(value)
+                if isinstance(value, list):
+                    for item in value:
+                        field.clean(item)
+                else:
+                    value = field.clean(value)
+
+                if hasattr(field, 'check_size') and callable(field.check_size):
+                    field.check_size(value, instance)
+
+                if hasattr(field, 'check_extension') and callable(field.check_extension):
+                    field.check_extension(value, instance)
+
             except ValidationError as e:
                 context['errors'] = e
                 self.add_error_class(field)
