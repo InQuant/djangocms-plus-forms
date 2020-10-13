@@ -1,3 +1,4 @@
+import abc
 import os
 from uuid import uuid4
 
@@ -150,11 +151,12 @@ class GenericFormPlugin(PlusPluginBase):
             })
         return field_dict
 
+    @abc.abstractmethod
     def post_save(self, request, context, instance, obj: SubmittedForm = None):
         """
         Hook to customize what to do after object creation.
         """
-        pass
+        return context
 
     @classmethod
     def process_submit(cls, request, instance, submit=True):
@@ -224,7 +226,9 @@ class GenericFormPlugin(PlusPluginBase):
         context['uuid'] = uuid4()
         obj = self.process_submit(request, instance)
         if obj:
-            self.post_save(request, context, instance, obj)
+            post_save_data = self.post_save(request, context, instance, obj)
+            if post_save_data:
+                context.update(post_save_data)
             context['success'] = True
         return super(GenericFormPlugin, self).render(context, instance, placeholder)
 
