@@ -1,5 +1,3 @@
-from pprint import pprint
-
 from django.contrib import admin
 
 from plusforms.models import SubmittedForm

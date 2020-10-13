@@ -22,3 +22,12 @@ class SubmittedForm(models.Model):
             return super(SubmittedForm, self).__str__()
         pi, pc = self.form.get_plugin_instance()
         return pi.glossary.get('name') or pi.glossary.get('form_id')
+
+    def get_data_with_field(self):
+        pi, pc = self.form.get_plugin_instance()
+        fields = pc.fields(pi)
+
+        for key, value in fields.items():
+            fields[key]['value'] = self.form_data.get(key, None)
+
+        return fields

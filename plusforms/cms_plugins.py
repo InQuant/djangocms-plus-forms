@@ -9,7 +9,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import get_available_image_extensions
-from django.db import IntegrityError
 from django.utils.translation import ugettext_lazy as _
 
 from plusforms.form_fields import get_available_form_fields, get_class, FileField
@@ -137,14 +136,28 @@ class GenericFormPlugin(PlusPluginBase):
                 children.append(child)
         return children
 
-    def post_save(self, context, instance, obj: SubmittedForm = None):
+    @classmethod
+    def fields(cls, instance):
+        field_dict = {}
+        for child in cls.field_plugins(instance):
+            ci, cc = child.get_plugin_instance()    # type:
+            field_id = ci.glossary.get('field_id')
+            field_dict.update({
+                field_id: {
+                    'field': cc.get_field_class(ci),
+                    **ci.glossary
+                }
+            })
+        return field_dict
+
+    def post_save(self, request, context, instance, obj: SubmittedForm = None):
         """
         Hook to customize what to do after object creation.
         """
         pass
 
-    def process_submit(self, context, instance):
-        request = context.get('request')
+    @classmethod
+    def process_submit(cls, request, instance, submit=True):
 
         form_data = {}
         if not request.POST.get('form-%s' % instance.id):
@@ -152,10 +165,10 @@ class GenericFormPlugin(PlusPluginBase):
 
         fields_dict = {}
 
-        for child in self.field_plugins(instance):
+        for child in cls.field_plugins(instance):
             ci, cc = child.get_plugin_instance()
 
-            field = cc.get_form_field(context, ci)
+            field = cc.get_form_field(request, ci)
 
             fields_dict[field.widget.attrs.get('id')] = field
 
@@ -181,29 +194,24 @@ class GenericFormPlugin(PlusPluginBase):
             # set data
             form_data[field.widget.name] = value
 
-        try:
-            obj = SubmittedForm.objects.create(
-                uuid=request.GET.get('fid'),
-                by_user=request.user if request.user.is_authenticated else None,
-                form=instance,
-                form_data=form_data,
-                meta_data={
-                    'host': request.META.get('HTTP_HOST'),
-                    'origin': request.META.get('HTTP_ORIGIN'),
-                    'referrer': request.META.get('HTTP_REFERER'),
-                    'user_agent': request.META.get('HTTP_USER_AGENT'),
-                    'remote_ip': get_client_ip(request),
-                }
-            )
-        except IntegrityError:
-            obj = None
+        obj = SubmittedForm(
+            uuid=uuid4(),
+            by_user=request.user if request.user.is_authenticated else None,
+            form=instance,
+            form_data=form_data,
+            meta_data={
+                'host': request.META.get('HTTP_HOST'),
+                'origin': request.META.get('HTTP_ORIGIN'),
+                'referrer': request.META.get('HTTP_REFERER'),
+                'user_agent': request.META.get('HTTP_USER_AGENT'),
+                'remote_ip': get_client_ip(request),
+            }
+        )
+        if submit:
+            obj.save()
 
-        if not obj:
-            return
-
-        self.post_save(context, instance, obj)
         request.POST = {}
-        return True
+        return obj
 
     @classmethod
     def get_identifier(cls, instance):
@@ -212,8 +220,11 @@ class GenericFormPlugin(PlusPluginBase):
         )
 
     def render(self, context, instance, placeholder):
+        request = context.get('request')
         context['uuid'] = uuid4()
-        if self.process_submit(context, instance):
+        obj = self.process_submit(request, instance)
+        if obj:
+            self.post_save(request, context, instance, obj)
             context['success'] = True
         return super(GenericFormPlugin, self).render(context, instance, placeholder)
 
@@ -255,7 +266,6 @@ class GenericFieldPlugin(PlusPluginBase):
     module = 'form'
     cache = False
     name = _('Field')
-    parent_classes = ['GenericFormPlugin', ]
     allow_children = True
     form = FormFieldPluginForm
     fieldsets = (
@@ -300,9 +310,9 @@ class GenericFieldPlugin(PlusPluginBase):
             instance.glossary.get('label')
         )
 
-    def get_form_field(self, context, instance):
-        request = context.get('request')
-        FIELD_CLASS = self.get_field_class(instance)
+    @classmethod
+    def get_form_field(cls, request, instance):
+        FIELD_CLASS = cls.get_field_class(instance)
         data = instance.glossary
         field_id = data.get('field_id', None)
 
@@ -347,7 +357,7 @@ class GenericFieldPlugin(PlusPluginBase):
 
     def render(self, context, instance, placeholder):
         request = context.get('request')
-        field = self.get_form_field(context, instance)
+        field = self.get_form_field(request, instance)
         value = request.POST.get(field.widget.name)
 
         if not value and request.FILES:

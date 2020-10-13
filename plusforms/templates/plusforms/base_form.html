@@ -12,6 +12,7 @@
     {% render_plugin plugin %}
   {% endfor %}
 
+  <input type="hidden" name="form-id" value="{{ instance.id }}">
   <input type="hidden" name="form-{{ instance.id }}" value="submit">
   <button type="submit" class="btn btn-primary">{{ instance.glossary.button_text }}</button>
 </form>
