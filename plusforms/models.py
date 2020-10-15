@@ -26,7 +26,7 @@ class SubmittedForm(models.Model):
     @property
     def form_fields(self):
         pi, pc = self.form.get_plugin_instance()
-        fields = pc.get_form_field(pi)
+        fields = pc.get_form_fields(pi, )
 
         for key, value in fields.items():
             fields[key]['value'] = self.form_data.get(key, None)
