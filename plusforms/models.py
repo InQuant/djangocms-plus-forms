@@ -24,9 +24,9 @@ class SubmittedForm(models.Model):
         return pi.glossary.get('name') or pi.glossary.get('form_id')
 
     @property
-    def fields(self):
+    def form_fields(self):
         pi, pc = self.form.get_plugin_instance()
-        fields = pc.fields(pi)
+        fields = pc.form_fields(pi)
 
         for key, value in fields.items():
             fields[key]['value'] = self.form_data.get(key, None)

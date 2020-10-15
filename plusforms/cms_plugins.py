@@ -138,7 +138,7 @@ class GenericFormPlugin(PlusPluginBase):
         return children
 
     @classmethod
-    def fields(cls, instance):
+    def from_fields(cls, instance):
         field_dict = {}
         for child in cls.field_plugins(instance):
             ci, cc = child.get_plugin_instance()    # type:
@@ -166,7 +166,6 @@ class GenericFormPlugin(PlusPluginBase):
             return
 
         fields_dict = {}
-
         for child in cls.field_plugins(instance):
             ci, cc = child.get_plugin_instance()
 
