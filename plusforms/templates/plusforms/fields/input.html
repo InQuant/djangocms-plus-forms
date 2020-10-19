@@ -1,4 +1,4 @@
-{% load cms_tags %}
+{% load cms_tags i18n %}
 {% spaceless %}
   <div class="form-group">
     {% if field.label %}
@@ -7,6 +7,17 @@
 
     {% if field.widget.template_name %}
       {% include field.widget.template_name with widget=field.widget %}
+    {% endif %}
+
+    {% if field.widget.type == "file" and field.widget.value %}
+      <h5 class="mt-1">{% trans 'Current Files' %}</h5>
+      <ul class="list-group">
+        {% for file in field.widget.value %}
+          <li class="list-group-item">
+            <a href="{{ file }}" target="_blank">{{ file }}</a>
+          </li>
+        {% endfor %}
+      </ul>
     {% endif %}
 
     {% if errors %}
