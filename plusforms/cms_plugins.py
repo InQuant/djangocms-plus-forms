@@ -1,5 +1,6 @@
 import abc
 import os
+from pprint import pprint
 from uuid import uuid4
 
 from cms.plugin_pool import plugin_pool
@@ -7,7 +8,7 @@ from cmsplus.models import PlusPlugin
 from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import get_available_image_extensions
 from django.utils.translation import ugettext_lazy as _
@@ -229,6 +230,7 @@ class GenericFormPlugin(PlusPluginBase):
             if post_save_data:
                 context.update(post_save_data)
             context['success'] = True
+        context['plus_form'] = obj
         return super(GenericFormPlugin, self).render(context, instance, placeholder)
 
 
@@ -365,6 +367,20 @@ class GenericFieldPlugin(PlusPluginBase):
 
         if not value and request.FILES:
             value = request.FILES.getlist(field.widget.name)
+
+        if not value and (context.get('plus_form') or request.GET.get('fid')):
+            if context.get('plus_form'):
+                fid = context['plus_form'].uuid
+            elif request.GET.get('fid'):
+                fid = request.GET.get('fid')
+            else:
+                fid = None
+
+            try:
+                sf = SubmittedForm.objects.get(uuid=fid)
+                field.widget.value = sf.form_data.get(field.widget.name)
+            except ObjectDoesNotExist:
+                pass
 
         if request.POST and request.POST.get('form-%s' % instance.parent_id):
             try:
