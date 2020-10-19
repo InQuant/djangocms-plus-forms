@@ -1,6 +1,9 @@
 import sys
+
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
+
+from plusforms import __version__
 
 
 class Tox(TestCommand):
@@ -30,9 +33,9 @@ TESTS_REQUIRE = ['tox >= 2.3']
 
 setup(
     name='djangocms-plus-forms',
-    version='0.1.0',
-    author='Dominik Lysiak',
-    author_email='dominik.lysiak@freenet.de',
+    version=__version__,
+    author='InQuant',
+    author_email='info@inquant.de',
     packages=['plusforms'],
     url='https://github.com/InQuant/djangocms-plus-forms',
     license='MIT',
