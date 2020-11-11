@@ -32,3 +32,8 @@ class SubmittedForm(models.Model):
             fields[key]['value'] = self.form_data.get(key, None)
 
         return fields
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if not self.uuid:
+            self.uuid = uuid4()
+        super().save(force_insert, force_update, using, update_fields)

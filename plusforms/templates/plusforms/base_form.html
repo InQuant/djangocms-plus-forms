@@ -1,18 +1,33 @@
-{% load cms_tags sekizai_tags static %}
+{% load cms_tags i18n sekizai_tags static %}
 
-<form action="?fid={{ uuid }}" method="post" enctype="multipart/form-data">
-  {% if success %}
-    <div class="alert alert-success">
-      {{ instance.glossary.success_text }}
-    </div>
-  {% endif %}
+{% block form %}
+  <form action="{% if uuid %}?fid={{ uuid }}{% endif %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% block form_header %}
+      {% if success %}
+        <div class="alert alert-success">
+          {{ instance.glossary.success_text }}
+        </div>
+      {% endif %}
+    {% endblock form_header %}
 
-  {% csrf_token %}
-  {% for plugin in instance.child_plugin_instances %}
-    {% render_plugin plugin %}
-  {% endfor %}
+    {% block form_plugins %}
+      {% for plugin in instance.child_plugin_instances %}
+        {% render_plugin plugin %}
+      {% endfor %}
+    {% endblock form_plugins %}
 
-  <input type="hidden" name="form-id" value="{{ instance.id }}">
-  <input type="hidden" name="form-{{ instance.id }}" value="submit">
-  <button type="submit" class="btn btn-primary">{{ instance.glossary.button_text }}</button>
-</form>
+    {% block form_footer %}
+      <input type="hidden" name="form-id" value="{{ instance.id }}">
+      <input type="hidden" name="form-{{ instance.id }}" value="submit">
+      <button type="submit" class="btn btn-primary">
+        {{ instance.glossary.button_text }}
+      </button>
+
+      {% if instance.glossary.reset_btn  %}
+        <a href="?" class="btn btn-default">
+          {% trans 'Reset' %}</a>
+      {% endif %}
+    {% endblock form_footer %}
+  </form>
+{% endblock form %}

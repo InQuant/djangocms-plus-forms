@@ -33,6 +33,14 @@ class GenericFormPlugin(OldGenericFormPlugin):
         print('Hooked')
 ```
 
+## Doc
+There are 3 ways to predefine and get an existing form for displaying in Plugin:
+
+- set GET parameter 'fid'
+- set POST parameter 'fid'
+- set context variable 'plus_form'
+
+
 
 ### Optional Setting
 **PLUSFORMS_FIELDS**
@@ -56,4 +64,6 @@ Add Date/DateTime form field with a good datetime picker.
  
 
 ### Known Bugs
-Nothing yet
+
+### Security issues
+UUID of submitted forms can be (theoretically) bruteforced wich leads into information disclosure.   

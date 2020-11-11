@@ -1,6 +1,5 @@
 import abc
 import os
-from pprint import pprint
 from uuid import uuid4
 
 from cms.plugin_pool import plugin_pool
@@ -85,6 +84,13 @@ class GenericFormPluginForm(PlusPluginFormBase):
     name = forms.CharField(label=_('Name'), required=False)
     description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea)
 
+    reset_btn = forms.BooleanField(initial=False, label=_('Show Reset Button'), required=False)
+    can_edit = forms.BooleanField(
+        initial=True, label=_('Editable'),
+        help_text=_('Can be changed after submission'),
+        required=False
+    )
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -160,9 +166,10 @@ class GenericFormPlugin(PlusPluginBase):
         return context
 
     @classmethod
-    def process_submit(cls, request, instance, submit=True):
-
+    def process_submit(cls, context, instance, submit=True):
         form_data = {}
+        request = context.get('request')
+
         if not request.POST.get('form-%s' % instance.id):
             return
 
@@ -196,23 +203,26 @@ class GenericFormPlugin(PlusPluginBase):
             # set data
             form_data[field.widget.name] = value
 
-        obj = SubmittedForm(
-            uuid=uuid4(),
-            by_user=request.user if request.user.is_authenticated else None,
-            form=instance,
-            form_data=form_data,
-            meta_data={
+        data = {
+            'by_user': request.user if request.user.is_authenticated else None,
+            'form': instance,
+            'form_data': form_data,
+            'meta_data': {
                 'host': request.META.get('HTTP_HOST'),
                 'origin': request.META.get('HTTP_ORIGIN'),
                 'referrer': request.META.get('HTTP_REFERER'),
                 'user_agent': request.META.get('HTTP_USER_AGENT'),
                 'remote_ip': get_client_ip(request),
             }
-        )
-        if submit:
-            obj.save()
+        }
+        fid = get_form_id(context)
+        if not instance.glossary.get('can_edit', False):
+            raise ValueError('Can not edit this form anymore')
 
-        request.POST = {}
+        obj, updated = SubmittedForm.objects.update_or_create(
+            uuid=fid,
+            defaults=data
+        )
         return obj
 
     @classmethod
@@ -223,8 +233,14 @@ class GenericFormPlugin(PlusPluginBase):
 
     def render(self, context, instance, placeholder):
         request = context.get('request')
-        context['uuid'] = uuid4()
-        obj = self.process_submit(request, instance)
+        fid = get_form_id(context)
+        if not fid:
+            context['uuid'] = uuid4()
+        else:
+            context['uuid'] = fid
+
+        obj = self.process_submit(context, instance)
+
         if obj:
             post_save_data = self.post_save(request, context, instance, obj)
             if post_save_data:
@@ -265,6 +281,18 @@ class FormFieldPluginForm(PlusPluginFormBase):
         # set field choices
         self.fields['field_type'] = forms.ChoiceField(choices=self.get_field_type_choices)
 
+
+def get_form_id(context):
+    request = context.get('request')
+    if context.get('plus_form'):
+        fid = context['plus_form'].uuid
+    elif request.GET.get('fid'):
+        fid = request.GET.get('fid')
+    elif request.POST.get('fid'):
+        fid = request.POST.get('fid')
+    else:
+        fid = None
+    return fid
 
 @plugin_pool.register_plugin
 class GenericFieldPlugin(PlusPluginBase):
@@ -368,13 +396,8 @@ class GenericFieldPlugin(PlusPluginBase):
         if not value and request.FILES:
             value = request.FILES.getlist(field.widget.name)
 
-        if not value and (context.get('plus_form') or request.GET.get('fid')):
-            if context.get('plus_form'):
-                fid = context['plus_form'].uuid
-            elif request.GET.get('fid'):
-                fid = request.GET.get('fid')
-            else:
-                fid = None
+        if not value:
+            fid = get_form_id(context)
 
             try:
                 sf = SubmittedForm.objects.get(uuid=fid)
