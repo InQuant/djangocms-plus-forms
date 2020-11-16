@@ -4,24 +4,18 @@
 {% block after_related_objects %}
   {{ block.super }}
 
-  {% if link_to_page != None %}
-    <a href="{{ link_to_page }}" target="_blank">{% trans 'Show form on page' %}</a>
-  {% endif %}
-
   <hr style="margin: 3rem 0">
   <h3 style="margin-bottom: 1rem">Form data</h3>
   <table>
     <tbody>
     {% for key, value in original.form_data.items %}
-      {% with obj_form|get_field_instance_from_form:key as field_instance %}
+        {% with original.meta_data.form_field_types|get_item:key as field_type %}
         <tr>
           <td style="padding: .5rem .5rem .5rem 0;"><span style="font-weight: bolder">{{ key }}</span></td>
-          <td style="padding: .5rem .5rem .5rem 0;"> {{ field_instance.glossary.field_type }}</td>
+          <td style="padding: .5rem .5rem .5rem 0;"> {{ field_type }}</td>
           <td style="padding: .5rem;">
-            {% if field_instance.glossary.field_type == 'FileField' %}
-              {% for file in value %}
-                <a href="{{ file }}" target="_blank">{{ file }}</a>
-              {% endfor %}
+            {% if field_type == 'file' %}
+              <a href="{% file_media_url value %}" target="_blank">{{ value }}</a>
             {% else %}
               {{ value }}
             {% endif %}

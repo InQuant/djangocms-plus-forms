@@ -1,14 +1,25 @@
 {% load cms_tags i18n sekizai_tags static %}
 
 {% block form %}
-  <form action="{% if uuid %}?fid={{ uuid }}{% endif %}" method="post" enctype="multipart/form-data">
+  <form action="{{ request.path }}" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% block form_header %}
-      {% if success %}
-        <div class="alert alert-success">
+    {% if request.POST %}
+      {% if user_form.non_field_errors %}
+        <div class="alert alert-danger">
+          <div class="lead">{{ instance.glossary.button_text }} {% trans "fehlgeschlagen." %}</div>
+          {{ user_form.non_field_errors }}
+        </div>
+      {% elif user_form.errors %}
+        <div class="alert alert-danger">
+          <div class="lead">{{ instance.glossary.button_text }} {% trans "fehlgeschlagen." %}</div>
+        </div>
+      {% else %}
+        <div class="alert alert-success lead">
           {{ instance.glossary.success_text }}
         </div>
       {% endif %}
+    {% endif %}
     {% endblock form_header %}
 
     {% block form_plugins %}
@@ -23,11 +34,6 @@
       <button type="submit" class="btn btn-primary">
         {{ instance.glossary.button_text }}
       </button>
-
-      {% if instance.glossary.reset_btn  %}
-        <a href="?" class="btn btn-default">
-          {% trans 'Reset' %}</a>
-      {% endif %}
     {% endblock form_footer %}
   </form>
 {% endblock form %}

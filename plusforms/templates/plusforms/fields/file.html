@@ -1,0 +1,23 @@
+{% load cms_tags plusforms i18n %}
+<div class="form-group{% if request.POST and not field.errors %} was-validated{% endif %}">
+
+  <div>{{ field.label_tag }}</div>
+
+  {% if field.initial %}
+  <div class="p-2 mb-2 border brd-light"><a href="{% file_media_url field.initial %}" target="_new">{{ field.initial }}</a></div>
+  {% endif %}
+
+  {{ field }}
+
+  {% if request.POST and field.errors %}
+    <div class="invalid-feedback d-block">{{ field.errors|join:". " }}</div>
+  {% endif %}
+
+  {% if field.help_text %}
+    <small class="form-text text-muted">{{ field.help_text }}</small>
+  {% endif %}
+
+  {% for plugin in instance.child_plugin_instances %}
+    {% render_plugin plugin %}
+  {% endfor %}
+</div>

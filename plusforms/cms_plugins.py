@@ -1,19 +1,19 @@
 import abc
-import os
-from uuid import uuid4
 
 from cms.plugin_pool import plugin_pool
 from cmsplus.models import PlusPlugin
 from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import get_available_image_extensions
 from django.utils.translation import ugettext_lazy as _
 
-from plusforms.form_fields import get_available_form_fields, get_class, FileField
 from plusforms.models import SubmittedForm
+from plusforms.form_fields import get_available_form_fields, get_class
+from plusforms.forms import PlusFormBase
+
+import logging
+logger = logging.getLogger('plusforms')
 
 EXT_IMG_CHOICES = getattr(settings, 'PLUSFORMS_EXTENSIONS_IMAGE',
                           tuple((ext, ext) for ext in get_available_image_extensions()))
@@ -84,47 +84,11 @@ class GenericFormPluginForm(PlusPluginFormBase):
     name = forms.CharField(label=_('Name'), required=False)
     description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea)
 
-    reset_btn = forms.BooleanField(initial=False, label=_('Show Reset Button'), required=False)
-    can_edit = forms.BooleanField(
-        initial=True, label=_('Editable'),
-        help_text=_('Can be changed after submission'),
-        required=False
-    )
 
-
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
-
-def handle_uploaded_file(f: InMemoryUploadedFile):
-    new_name = "{prefix}_{name}".format(
-        prefix=uuid4(),
-        name=f.name,
-    )
-    media_root = getattr(settings, 'MEDIA_ROOT')
-    media_url = getattr(settings, 'MEDIA_URL')
-
-    upload_folder = getattr(settings, 'PLUSFORMS_MEDIA_UPLOAD', 'plusforms')
-
-    upload_media_root = os.path.join(media_root, upload_folder)
-
-    if not os.path.exists(upload_media_root):
-        os.makedirs(upload_media_root)
-
-    path_name = os.path.join(upload_media_root, new_name)
-
-    with open(path_name, 'wb+') as destination:
-        for chunk in f.chunks():
-            destination.write(chunk)
-
-    # generate media url
-    url = os.path.join(upload_folder, new_name).split("\\")
-    return "%s%s" % (media_url, '/'.join(url))
+def snake_to_camel(s):
+    """ huhu_foo_bar -> HuhuFooBar
+    """
+    return ''.join(x.capitalize() for x in s.split('_'))
 
 
 @plugin_pool.register_plugin
@@ -140,23 +104,9 @@ class GenericFormPlugin(PlusPluginBase):
     def field_plugins(instance: PlusPlugin):
         children = []
         for child in instance.get_children() or []:
-            if child.plugin_type == 'GenericFieldPlugin':
+            if issubclass(child.get_plugin_class(), GenericFieldPlugin):
                 children.append(child)
         return children
-
-    @classmethod
-    def get_form_fields(cls, instance):
-        field_dict = {}
-        for child in cls.field_plugins(instance):
-            ci, cc = child.get_plugin_instance()    # type:
-            field_id = ci.glossary.get('field_id')
-            field_dict.update({
-                field_id: {
-                    'field': cc.get_field_class(ci),
-                    **ci.glossary
-                }
-            })
-        return field_dict
 
     @abc.abstractmethod
     def post_save(self, request, context, instance, obj: SubmittedForm = None):
@@ -165,65 +115,23 @@ class GenericFormPlugin(PlusPluginBase):
         """
         return context
 
-    @classmethod
-    def process_submit(cls, context, instance, submit=True):
-        form_data = {}
-        request = context.get('request')
+    def get_user_form_class(self, context, instance):
+        if not getattr(self, 'user_form_class', None):
+            self.user_form_class = self.user_form_factory(context, instance)
+        return self.user_form_class
 
-        if not request.POST.get('form-%s' % instance.id):
-            return
-
-        fields_dict = {}
-        for child in cls.field_plugins(instance):
+    def get_user_form_fields(self, context, instance):
+        fields = {}
+        for child in self.field_plugins(instance):
             ci, cc = child.get_plugin_instance()
+            fields[ci.glossary['field_id']] = cc.get_form_field(context, ci)
+        return fields
 
-            field = cc.get_form_field(request, ci)
-
-            fields_dict[field.widget.attrs.get('id')] = field
-
-            if issubclass(field.__class__, FileField):
-                files = request.FILES.getlist(field.widget.name)
-                value = []
-                for f in files:
-                    try:
-                        field.clean(f)
-                        field.check_size(f, ci)
-                        field.check_extension(f, ci)
-                    except ValidationError as e:
-                        return
-
-                    value.append(handle_uploaded_file(f))
-            else:
-                value = request.POST.get(field.widget.name)
-                try:
-                    field.clean(value)
-                except ValidationError as e:
-                    return
-
-            # set data
-            form_data[field.widget.name] = value
-
-        data = {
-            'by_user': request.user if request.user.is_authenticated else None,
-            'form': instance,
-            'form_data': form_data,
-            'meta_data': {
-                'host': request.META.get('HTTP_HOST'),
-                'origin': request.META.get('HTTP_ORIGIN'),
-                'referrer': request.META.get('HTTP_REFERER'),
-                'user_agent': request.META.get('HTTP_USER_AGENT'),
-                'remote_ip': get_client_ip(request),
-            }
-        }
-        fid = get_form_id(context)
-        if not instance.glossary.get('can_edit', False):
-            raise ValueError('Can not edit this form anymore')
-
-        obj, updated = SubmittedForm.objects.update_or_create(
-            uuid=fid,
-            defaults=data
-        )
-        return obj
+    def user_form_factory(self, context, instance, module=__name__):
+        fields = self.get_user_form_fields(context, instance)
+        cls_name = snake_to_camel('%s_form' % instance.glossary.get('form_id').replace('-', '_'))
+        attrs = dict(**fields, __module__=module)
+        return type(cls_name, (PlusFormBase,), attrs)
 
     @classmethod
     def get_identifier(cls, instance):
@@ -233,20 +141,26 @@ class GenericFormPlugin(PlusPluginBase):
 
     def render(self, context, instance, placeholder):
         request = context.get('request')
-        fid = get_form_id(context)
-        if not fid:
-            context['uuid'] = uuid4()
+        user_form_cls = self.get_user_form_class(context, instance)
+
+        sf = context.get('plus_form')
+        if request.POST and request.POST.get('form-%s' % instance.id):
+            name = sf.name if sf else self.get_identifier(instance)
+            self.user_form = user_form_cls(request.POST, request.FILES, name=name, request=request, instance=sf)
+
+            # validate and save
+            if self.user_form.is_valid():
+                try:
+                    obj = self.user_form.save()
+                    context['plus_form'] = obj
+                    self.post_save(request, context, instance, obj)
+                except Exception as e:
+                    logger.error(str(e))
         else:
-            context['uuid'] = fid
+            # init for get
+            self.user_form = user_form_cls(instance=sf)
 
-        obj = self.process_submit(context, instance)
-
-        if obj:
-            post_save_data = self.post_save(request, context, instance, obj)
-            if post_save_data:
-                context.update(post_save_data)
-            context['success'] = True
-        context['plus_form'] = obj
+        context['user_form'] = self.user_form
         return super(GenericFormPlugin, self).render(context, instance, placeholder)
 
 
@@ -266,7 +180,7 @@ class FormFieldPluginForm(PlusPluginFormBase):
 
     # if file or image
     max_mb = forms.IntegerField(required=False)
-    ext = forms.MultipleChoiceField(required=False, choices=EXT_CHOICES)
+    allowed_extensions = forms.MultipleChoiceField(required=False, choices=EXT_CHOICES)
 
     @staticmethod
     def get_field_type_choices():
@@ -281,18 +195,6 @@ class FormFieldPluginForm(PlusPluginFormBase):
         # set field choices
         self.fields['field_type'] = forms.ChoiceField(choices=self.get_field_type_choices)
 
-
-def get_form_id(context):
-    request = context.get('request')
-    if context.get('plus_form'):
-        fid = context['plus_form'].uuid
-    elif request.GET.get('fid'):
-        fid = request.GET.get('fid')
-    elif request.POST.get('fid'):
-        fid = request.POST.get('fid')
-    else:
-        fid = None
-    return fid
 
 @plugin_pool.register_plugin
 class GenericFieldPlugin(PlusPluginBase):
@@ -314,7 +216,7 @@ class GenericFieldPlugin(PlusPluginBase):
         }),
         (_('FileInput Options'), {
             'classes': ('file_input--wrapper',),
-            'fields': ('max_mb', 'ext'),
+            'fields': ('max_mb', 'allowed_extensions'),
         }),
     )
 
@@ -344,7 +246,7 @@ class GenericFieldPlugin(PlusPluginBase):
         )
 
     @classmethod
-    def get_form_field(cls, request, instance):
+    def get_form_field(cls, context, instance):
         FIELD_CLASS = cls.get_field_class(instance)
         data = instance.glossary
         field_id = data.get('field_id', None)
@@ -356,17 +258,7 @@ class GenericFieldPlugin(PlusPluginBase):
         }
         input_type = getattr(FIELD_CLASS.widget, 'input_type', '')
 
-        widget_value = None
-        if request.POST.get('form-%s' % instance.parent_id):
-            widget_value = request.POST.get(field_id)
-
-        if input_type == 'checkbox':
-            if widget_value:
-                _attrs['checked'] = True
-
         widget = FIELD_CLASS.widget(attrs=_attrs)
-        if input_type != 'checkbox':
-            widget.value = widget_value
         widget.name = field_id
         widget.type = input_type
 
@@ -376,6 +268,11 @@ class GenericFieldPlugin(PlusPluginBase):
             'widget': widget,
             'required': data.get('required', False),
         }
+
+        if instance.glossary.get('max_mb'):
+            field_kwargs['max_mb'] = instance.glossary.get('max_mb')
+        if instance.glossary.get('allowed_extensions'):
+            field_kwargs['allowed_extensions'] = instance.glossary.get('allowed_extensions')
 
         return FIELD_CLASS(**field_kwargs)
 
@@ -389,39 +286,15 @@ class GenericFieldPlugin(PlusPluginBase):
         return field
 
     def render(self, context, instance, placeholder):
-        request = context.get('request')
-        field = self.get_form_field(request, instance)
-        value = request.POST.get(field.widget.name)
+        field_id = instance.glossary.get('field_id')
 
-        if not value and request.FILES:
-            value = request.FILES.getlist(field.widget.name)
-
-        if not value:
-            fid = get_form_id(context)
-
-            try:
-                sf = SubmittedForm.objects.get(uuid=fid)
-                field.widget.value = sf.form_data.get(field.widget.name)
-            except ObjectDoesNotExist:
-                pass
-
-        if request.POST and request.POST.get('form-%s' % instance.parent_id):
-            try:
-                if isinstance(value, list):
-                    for item in value:
-                        field.clean(item)
-                else:
-                    value = field.clean(value)
-
-                if hasattr(field, 'check_size') and callable(field.check_size):
-                    field.check_size(value, instance)
-
-                if hasattr(field, 'check_extension') and callable(field.check_extension):
-                    field.check_extension(value, instance)
-
-            except ValidationError as e:
-                context['errors'] = e
-                self.add_error_class(field)
-
-        context['field'] = field
-        return super(GenericFieldPlugin, self).render(context, instance, placeholder)
+        if context.get('user_form'):
+            form = context['user_form']
+            bound_field = form[field_id]
+            if bound_field.errors:
+                self.add_error_class(form.fields[field_id])
+            context.update({
+                'field_id': field_id,
+                'field': bound_field,
+            })
+        return super().render(context, instance, placeholder)

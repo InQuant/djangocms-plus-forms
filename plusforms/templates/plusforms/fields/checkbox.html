@@ -1,23 +1,19 @@
 {% load cms_tags %}
-{% spaceless %}
-  <div class="form-group">
-    <div class="form-check">
+<div class="form-check mb-3{% if request.POST and not field.errors %} was-validated{% endif %}">
 
-      {% if field.widget.template_name %}
-        {% include field.widget.template_name with widget=field.widget %}
-      {% endif %}
+    {{ field }}
 
-      <label class="form-check-label" for="{{ field.id }}">
-        {{ field.label }}
-        {% for plugin in instance.child_plugin_instances %}
-          {% render_plugin plugin %}
-        {% endfor %}
-      </label>
-      {% if errors %}
-        <div class="invalid-feedback">
-          {{ errors|join:". " }}
-        </div>
-      {% endif %}
-    </div>
-  </div>
-{% endspaceless %}
+    {% if field.label %}
+      <label class="form-check-label" for="{{ field_id }}">{{ field.label }}</label>
+    {% endif %}
+
+    <div class="invalid-feedback">{{ field.errors|join:". " }}</div>
+
+    {% if field.help_text %}
+      <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
+
+    {% for plugin in instance.child_plugin_instances %}
+      {% render_plugin plugin %}
+    {% endfor %}
+</div>

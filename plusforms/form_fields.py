@@ -1,14 +1,16 @@
 import importlib
 import sys
+import os
 
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import FileExtensionValidator
+from django.core.files import File
 from django.forms import Field
 from django.utils.datetime_safe import datetime
 from django.utils.translation import ugettext_lazy as _
+from django.utils.deconstruct import deconstructible
 
 
 def get_class_from_string(class_string: str):
@@ -69,7 +71,15 @@ FORM_FIELDS = [
 ]
 
 
-class InputField(forms.CharField):
+class BaseFieldMixIn:
+    def serialize_field(self, value):
+        return value
+
+    def deserialize_field(self, value):
+        return value
+
+
+class InputField(forms.CharField, BaseFieldMixIn):
     name = _('Text field')
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
@@ -92,47 +102,73 @@ class EmailField(InputField):
     name = _('Email field')
 
 
-class CheckboxField(forms.BooleanField):
+class CheckboxField(forms.BooleanField, BaseFieldMixIn):
     name = _('Checkbox field')
     template_name = "plusforms/fields/checkbox.html"
     widget = forms.CheckboxInput
     widget_class = 'form-check-input'
 
 
-class FileField(forms.FileField):
-    widget = forms.FileInput
+@deconstructible
+class FileSizeValidator:
+    message = _(
+        "File size of '%(size)sMB' is not allowed. "
+        "Maximum allowed file size is: '%(allowed_size)sMB'."
+    )
+    code = 'invalid_file_size'
+
+    def __init__(self, max_mb=None, message=None, code=None):
+        self.max_mb = max_mb
+        if message is not None:
+            self.message = message
+        if code is not None:
+            self.code = code
+
+    def __call__(self, value):
+        file_size_in_mb = value.size / (1000*1000)
+        if self.max_mb and file_size_in_mb > self.max_mb:
+            raise ValidationError(
+                self.message,
+                code=self.code,
+                params={
+                    'size': file_size_in_mb,
+                    'allowed_size': self.max_mb
+                }
+            )
+
+
+class FileValidationMixin:
+
+    def __init__(self, *, max_mb=None, allowed_extensions=None, **kwargs):
+        super().__init__(**kwargs)
+        if max_mb is not None:
+            self.validators.append(FileSizeValidator(max_mb=max_mb))
+        if allowed_extensions is not None:
+            self.validators.append(FileExtensionValidator(allowed_extensions=allowed_extensions))
+
+    def serialize_field(self, dj_file):
+        try:
+            return dj_file.name
+        except Exception:
+            return dj_file
+
+    def deserialize_field(self, name):
+        try:
+            return File(open(os.path.join(settings.MEDIA_ROOT, name)), name=name)
+        except Exception:
+            return name
+
+
+class FileField(FileValidationMixin, forms.FileField):
+    widget = forms.ClearableFileInput
     name = _('File Field')
-    template_name = "plusforms/fields/input.html"
-
-    def check_size(self, value, instance):
-        """
-        Check if mb limit is set and validate
-        """
-        if isinstance(value, list):
-            for item in value:
-                self.check_size(item, instance)
-        else:
-            max_mb = instance.glossary.get('max_mb')
-            if instance and value and max_mb:
-                file_size_in_mb = value.size / (1000*1000)
-                if file_size_in_mb > max_mb:
-                    print(file_size_in_mb)
-                    raise ValidationError(_('Maximum file size exceeded. Your file: %d MB (max. %i MB)' % (file_size_in_mb, max_mb)))
-
-    def check_extension(self, value, instance):
-        if isinstance(value, list):
-            for item in value:
-                self.check_extension(item, instance)
-        else:
-            ext = instance.glossary.get('ext')
-            if instance and value and ext:
-                FileExtensionValidator(allowed_extensions=ext)(value)
+    template_name = "plusforms/fields/file.html"
 
 
-class ImageField(forms.ImageField):
+class ImageField(FileValidationMixin, forms.ImageField):
     widget = forms.FileInput
     name = _('Image Field')
-    template_name = "plusforms/fields/input.html"
+    template_name = "plusforms/fields/file.html"
 
 
 def get_date_input_examples(FieldClass) -> list:
@@ -148,7 +184,7 @@ def get_date_input_examples(FieldClass) -> list:
     return r
 
 
-class DateField(forms.DateField):
+class DateField(forms.DateField, BaseFieldMixIn):
     name = _('Date Field')
     template_name = "plusforms/fields/input.html"
     widget = forms.DateInput
@@ -162,7 +198,7 @@ class DateField(forms.DateField):
     }
 
 
-class TimeField(forms.TimeField):
+class TimeField(forms.TimeField, BaseFieldMixIn):
     name = _('Time Field')
     template_name = "plusforms/fields/input.html"
     widget = forms.TimeInput
@@ -176,7 +212,7 @@ class TimeField(forms.TimeField):
     }
 
 
-class DateTimeField(forms.DateTimeField):
+class DateTimeField(forms.DateTimeField, BaseFieldMixIn):
     name = _('Date Time Field')
     widget = forms.DateTimeInput
     template_name = "plusforms/fields/input.html"
@@ -190,26 +226,26 @@ class DateTimeField(forms.DateTimeField):
     }
 
 
-class URLField(forms.URLField):
+class URLField(forms.URLField, BaseFieldMixIn):
     name = _('URL Field')
     widget = forms.URLInput
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
 
 
-class IntegerField(forms.IntegerField):
+class IntegerField(forms.IntegerField, BaseFieldMixIn):
     name = _('Integer Field')
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
 
 
-class FloatField(forms.FloatField):
+class FloatField(forms.FloatField, BaseFieldMixIn):
     name = _('Float Field')
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
 
 
-class DecimalField(forms.DecimalField):
+class DecimalField(forms.DecimalField, BaseFieldMixIn):
     name = _('Decimal Field')
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
