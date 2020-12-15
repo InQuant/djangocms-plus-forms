@@ -5,7 +5,7 @@ from django.conf import settings
 from django import forms
 from django.core.files import File
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.forms.fields import FileField
 
 from .models import SubmittedForm
@@ -60,7 +60,7 @@ class PlusFormBase(forms.ModelForm):
         for key, field in self.fields.items():
             if isinstance(field, FileField):
                 value = field.widget.value_from_datadict(self.data, self.files, key)
-                if isinstance(value, InMemoryUploadedFile):
+                if issubclass(value.__class__, File):
                     new_file = handle_uploaded_file(value)
                     self.instance.form_data[key] = new_file.name
                     self.initial[key] = new_file
