@@ -5,6 +5,8 @@ import os
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.images import ImageFile, get_image_dimensions
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import FileExtensionValidator
 from django.core.files import File
 from django.forms import Field
@@ -110,6 +112,52 @@ class CheckboxField(forms.BooleanField, BaseFieldMixIn):
 
 
 @deconstructible
+class PixelResolutionValidator:
+    message = _(
+        "Minimum image pixel resolution must be %(min_px_width)s x %(min_px_height)s. "
+        "Uploaded image resolution is %(width)s x %(height)s."
+    )
+    code = 'invalid_pixel_resolution'
+
+    def __init__(self, min_px_width=None, min_px_height=None, message=None, code=None):
+        self.min_px_width = min_px_width
+        self.min_px_height = min_px_height
+        if message is not None:
+            self.message = message
+        if code is not None:
+            self.code = code
+
+    def __call__(self, file: InMemoryUploadedFile):
+        width, height = get_image_dimensions(file)
+
+        min_val_1 = self.min_px_height
+        min_val_2 = self.min_px_width
+        val_1 = height
+        val_2 = width
+
+        # check if rotated (needed?)
+        # if self.min_px_width >= self.min_px_height:
+        #     min_val_1 = self.min_px_width
+        #     min_val_2 = self.min_px_height
+        #
+        # if width > height:
+        #     val_1 = width
+        #     val_2 = height
+
+        if val_1 < min_val_1 or val_2 < min_val_2:
+            raise ValidationError(
+                self.message,
+                code=self.code,
+                params={
+                    'min_px_width': self.min_px_width,
+                    'min_px_height': self.min_px_height,
+                    'width': width,
+                    'height': height,
+                }
+            )
+
+
+@deconstructible
 class FileSizeValidator:
     message = _(
         "File size of '%(size)sMB' is not allowed. "
@@ -159,13 +207,20 @@ class FileValidationMixin:
             return name
 
 
+class ImageValidationMixIn(FileValidationMixin):
+    def __init__(self, *, min_px_width=None, min_px_height=None, **kwargs):
+        super().__init__(**kwargs)
+        if min_px_width is not None or min_px_height is not None:
+            self.validators.append(PixelResolutionValidator(min_px_width, min_px_height))
+
+
 class FileField(FileValidationMixin, forms.FileField):
     widget = forms.ClearableFileInput
     name = _('File Field')
     template_name = "plusforms/fields/file.html"
 
 
-class ImageField(FileValidationMixin, forms.ImageField):
+class ImageField(ImageValidationMixIn, forms.ImageField):
     widget = forms.FileInput
     name = _('Image Field')
     template_name = "plusforms/fields/file.html"

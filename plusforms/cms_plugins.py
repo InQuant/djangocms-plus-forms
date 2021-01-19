@@ -182,6 +182,9 @@ class FormFieldPluginForm(PlusPluginFormBase):
     max_mb = forms.IntegerField(required=False)
     allowed_extensions = forms.MultipleChoiceField(required=False, choices=EXT_CHOICES)
 
+    min_px_width = forms.IntegerField(required=False)
+    min_px_height = forms.IntegerField(required=False)
+
     @staticmethod
     def get_field_type_choices():
         r = []
@@ -216,7 +219,11 @@ class GenericFieldPlugin(PlusPluginBase):
         }),
         (_('FileInput Options'), {
             'classes': ('file_input--wrapper',),
-            'fields': ('max_mb', 'allowed_extensions'),
+            'fields': ('max_mb', 'allowed_extensions', ),
+        }),
+        (_('ImageInput Options'), {
+            'classes': ('image_input--wrapper',),
+            'fields': ('min_px_width', 'min_px_height'),
         }),
     )
 
@@ -269,10 +276,35 @@ class GenericFieldPlugin(PlusPluginBase):
             'required': data.get('required', False),
         }
 
-        if instance.glossary.get('max_mb'):
-            field_kwargs['max_mb'] = instance.glossary.get('max_mb')
-        if instance.glossary.get('allowed_extensions'):
-            field_kwargs['allowed_extensions'] = instance.glossary.get('allowed_extensions')
+        help_text = []
+
+        max_mb = instance.glossary.get('max_mb')
+        if max_mb:
+            field_kwargs['max_mb'] = max_mb
+            help_text.append(
+                "Max. %s MB." % max_mb
+            )
+
+        min_w = instance.glossary.get('min_px_width')
+        if min_w:
+            field_kwargs['min_px_width'] = min_w
+
+        min_h = instance.glossary.get('min_px_height')
+        if min_h:
+            field_kwargs['min_px_height'] = min_h
+
+        if min_w or min_h:
+            help_text.append('Minimum %s x %s. ' % (
+                "*" if not min_w else "%spx" % min_w,
+                "*" if not min_h else "%spx" % min_h,
+            ))
+
+        allowed_extensions = instance.glossary.get('allowed_extensions')
+        if allowed_extensions:
+            field_kwargs['allowed_extensions'] = allowed_extensions
+            help_text.append("(%s) " % ", ".join(allowed_extensions))
+
+        field_kwargs['help_text'] += " ".join(help_text)
 
         return FIELD_CLASS(**field_kwargs)
 
