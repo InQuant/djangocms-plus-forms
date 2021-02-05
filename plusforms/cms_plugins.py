@@ -318,15 +318,21 @@ class GenericFieldPlugin(PlusPluginBase):
         return field
 
     def render(self, context, instance, placeholder):
+        context = super().render(context, instance, placeholder)
         field_id = instance.glossary.get('field_id')
 
         if context.get('user_form'):
             form = context['user_form']
-            bound_field = form[field_id]
+            try:
+                bound_field = form[field_id]
+            except KeyError as e:
+                logger.error(str(e))
+                return context
+
             if bound_field.errors:
                 self.add_error_class(form.fields[field_id])
             context.update({
                 'field_id': field_id,
                 'field': bound_field,
             })
-        return super().render(context, instance, placeholder)
+        return context
