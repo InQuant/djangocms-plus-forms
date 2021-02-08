@@ -196,7 +196,7 @@ class FormFieldPluginForm(PlusPluginFormBase):
     def __init__(self, *args, **kwargs):
         super(FormFieldPluginForm, self).__init__(*args, **kwargs)
         # set field choices
-        self.fields['field_type'] = forms.ChoiceField(choices=self.get_field_type_choices)
+        self.fields['field_type'].choices = self.get_field_type_choices
 
 
 @plugin_pool.register_plugin
@@ -242,6 +242,8 @@ class GenericFieldPlugin(PlusPluginBase):
         return CLS
 
     def get_render_template(self, context, instance, placeholder):
+        if self.render_template:
+            return self.render_template
         CLS = self.get_field_class(instance)
         return CLS.template_name
 
