@@ -115,6 +115,12 @@ class GenericFormPlugin(PlusPluginBase):
         """
         return context
 
+    @abc.abstractmethod
+    def pre_save(self, request, context, instance, plus_form: PlusFormBase):
+        """
+        Hook to customize what to do (maybe additional data cleaning) before object creation and after clean.
+        """
+
     def get_user_form_class(self, context, instance):
         if not getattr(self, 'user_form_class', None):
             self.user_form_class = self.user_form_factory(context, instance)
@@ -151,6 +157,7 @@ class GenericFormPlugin(PlusPluginBase):
             # validate and save
             if self.user_form.is_valid():
                 try:
+                    self.pre_save(request, context, instance, self.user_form)
                     obj = self.user_form.save()
                     context['plus_form'] = obj
                     self.post_save(request, context, instance, obj)
