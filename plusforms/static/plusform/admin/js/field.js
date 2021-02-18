@@ -1,4 +1,4 @@
-$(function () {
+jQuery(function ($) {
     let form = $('form');
     let select = form.find('#id_field_type');
     let fieldset = form.find('.file_input--wrapper')
