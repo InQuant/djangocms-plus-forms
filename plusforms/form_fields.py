@@ -1,18 +1,18 @@
 import importlib
-import sys
 import os
+import sys
 
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.files.images import ImageFile, get_image_dimensions
+from django.core.files import File
+from django.core.files.images import get_image_dimensions
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import FileExtensionValidator
-from django.core.files import File
 from django.forms import Field
 from django.utils.datetime_safe import datetime
-from django.utils.translation import ugettext_lazy as _
 from django.utils.deconstruct import deconstructible
+from django.utils.translation import ugettext_lazy as _
 
 
 def get_class_from_string(class_string: str):
@@ -79,6 +79,58 @@ class BaseFieldMixIn:
 
     def deserialize_field(self, value):
         return value
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @classmethod
+    def bound_field_values(cls, field_data):
+        field_id = field_data['field_id']
+
+        _attrs = {
+            'placeholder': field_data.get('field_placeholder', ''),
+            'id': field_id,
+            'class': getattr(cls, 'widget_class', ''),
+        }
+        input_type = getattr(cls.widget, 'input_type', '')
+
+        widget = cls.widget(attrs=_attrs)
+
+        widget.name = field_id
+        widget.type = input_type
+
+        field_kwargs = {
+            'label': field_data.get('label', ''),
+            'help_text': field_data.get('help_text', field_data.get('value', '')),
+            'widget': widget,
+            'required': field_data.get('required', False),
+        }
+        return field_kwargs
+
+    @classmethod
+    def bound_field(cls, field_data):
+        field_values = cls.bound_field_values(field_data)
+        if field_values and isinstance(field_values, dict):
+            field = cls(**field_values)
+            return field
+        return cls()
+
+
+class FileFieldMixin(BaseFieldMixIn):
+    @classmethod
+    def bound_field_values(cls, field_data):
+        field_kwargs = super(FileFieldMixin, cls).bound_field_values(field_data)
+        allowed_extensions = field_data.get('allowed_extensions')
+        if allowed_extensions:
+            field_kwargs['allowed_extensions'] = allowed_extensions
+            field_kwargs['help_text'] += " (%s) " % ", ".join(allowed_extensions)
+
+        max_mb = field_data.get('max_mb')
+        if max_mb:
+            field_kwargs['max_mb'] = max_mb
+            field_kwargs['help_text'] += " Max. %s MB." % max_mb
+
+        return field_kwargs
 
 
 class InputField(forms.CharField, BaseFieldMixIn):
@@ -214,16 +266,35 @@ class ImageValidationMixIn(FileValidationMixin):
             self.validators.append(PixelResolutionValidator(min_px_width, min_px_height))
 
 
-class FileField(FileValidationMixin, forms.FileField):
+class FileField(FileValidationMixin, forms.FileField, FileFieldMixin):
     widget = forms.ClearableFileInput
     name = _('File Field')
     template_name = "plusforms/fields/file.html"
 
 
-class ImageField(ImageValidationMixIn, forms.ImageField):
+class ImageField(ImageValidationMixIn, forms.ImageField, FileFieldMixin):
     widget = forms.FileInput
     name = _('Image Field')
     template_name = "plusforms/fields/file.html"
+
+    @classmethod
+    def bound_field_values(cls, field_data):
+        field_kwargs = super(ImageField, cls).bound_field_values(field_data)
+
+        min_w = field_data.get('min_px_width')
+        if min_w:
+            field_kwargs['min_px_width'] = min_w
+
+        min_h = field_data.get('min_px_height')
+        if min_h:
+            field_kwargs['min_px_height'] = min_h
+
+        if min_w or min_h:
+            field_kwargs['help_text'] += ' Minimum %s x %s. ' % (
+                "*" if not min_w else "%spx" % min_w,
+                "*" if not min_h else "%spx" % min_h,
+            )
+        return field_kwargs
 
 
 def get_date_input_examples(FieldClass) -> list:

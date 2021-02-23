@@ -1,4 +1,5 @@
 import abc
+import logging
 
 from cms.plugin_pool import plugin_pool
 from cmsplus.models import PlusPlugin
@@ -8,11 +9,10 @@ from django.conf import settings
 from django.core.validators import get_available_image_extensions
 from django.utils.translation import ugettext_lazy as _
 
-from plusforms.models import SubmittedForm
 from plusforms.form_fields import get_available_form_fields, get_class
 from plusforms.forms import PlusFormBase
+from plusforms.models import SubmittedForm
 
-import logging
 logger = logging.getLogger('plusforms')
 
 EXT_IMG_CHOICES = getattr(settings, 'PLUSFORMS_EXTENSIONS_IMAGE',
@@ -252,7 +252,10 @@ class GenericFieldPlugin(PlusPluginBase):
         if self.render_template:
             return self.render_template
         CLS = self.get_field_class(instance)
-        return CLS.template_name
+        if hasattr(CLS, 'template_name'):
+            return CLS.template_name
+        else:
+            return CLS.widget.template_name
 
     @classmethod
     def get_identifier(cls, instance):
@@ -264,58 +267,7 @@ class GenericFieldPlugin(PlusPluginBase):
     @classmethod
     def get_form_field(cls, context, instance):
         FIELD_CLASS = cls.get_field_class(instance)
-        data = instance.glossary
-        field_id = data.get('field_id', None)
-
-        _attrs = {
-            'placeholder': data.get('field_placeholder', ''),
-            'id': field_id,
-            'class': getattr(FIELD_CLASS, 'widget_class', ''),
-        }
-        input_type = getattr(FIELD_CLASS.widget, 'input_type', '')
-
-        widget = FIELD_CLASS.widget(attrs=_attrs)
-        widget.name = field_id
-        widget.type = input_type
-
-        field_kwargs = {
-            'label': data.get('label', ''),
-            'help_text': data.get('help_text', data.get('value', '')),
-            'widget': widget,
-            'required': data.get('required', False),
-        }
-
-        help_text = []
-
-        max_mb = instance.glossary.get('max_mb')
-        if max_mb:
-            field_kwargs['max_mb'] = max_mb
-            help_text.append(
-                "Max. %s MB." % max_mb
-            )
-
-        min_w = instance.glossary.get('min_px_width')
-        if min_w:
-            field_kwargs['min_px_width'] = min_w
-
-        min_h = instance.glossary.get('min_px_height')
-        if min_h:
-            field_kwargs['min_px_height'] = min_h
-
-        if min_w or min_h:
-            help_text.append('Minimum %s x %s. ' % (
-                "*" if not min_w else "%spx" % min_w,
-                "*" if not min_h else "%spx" % min_h,
-            ))
-
-        allowed_extensions = instance.glossary.get('allowed_extensions')
-        if allowed_extensions:
-            field_kwargs['allowed_extensions'] = allowed_extensions
-            help_text.append("(%s) " % ", ".join(allowed_extensions))
-
-        field_kwargs['help_text'] += " ".join(help_text)
-
-        return FIELD_CLASS(**field_kwargs)
+        return FIELD_CLASS.bound_field(instance.glossary)
 
     @staticmethod
     def add_error_class(field):
