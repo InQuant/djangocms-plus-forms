@@ -4,6 +4,7 @@ import sys
 
 from django import forms
 from django.conf import settings
+from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.files import File
 from django.core.files.images import get_image_dimensions
@@ -13,6 +14,8 @@ from django.forms import Field
 from django.utils.datetime_safe import datetime
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import ugettext_lazy as _
+
+from plusforms.form_widgets import CaptchaWidget
 
 
 def get_class_from_string(class_string: str):
@@ -70,6 +73,7 @@ FORM_FIELDS = [
     'DateField',
     'TimeField',
     'DateTimeField',
+    'CaptchaField',
 ]
 
 
@@ -375,3 +379,18 @@ class DecimalField(forms.DecimalField, BaseFieldMixIn):
     name = _('Decimal Field')
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
+
+
+class CaptchaField(forms.Field, BaseFieldMixIn):
+    widget = CaptchaWidget
+    template_name = "plusforms/fields/captcha.html"
+    widget_class = 'form-control'
+
+    def validate(self, field_value):
+        value_signed, value = field_value
+        _value = signing.loads(value_signed)
+
+        if str(_value) != value:
+            raise ValidationError(
+                _('Wrong Captcha. Please check your Input.')
+            )
