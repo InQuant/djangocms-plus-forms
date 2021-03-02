@@ -1,21 +1,27 @@
 import importlib
+import logging
 import os
 import sys
+from typing import List, Tuple
 
 from django import forms
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core import signing
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, FieldError
 from django.core.files import File
 from django.core.files.images import get_image_dimensions
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import FileExtensionValidator
+from django.db.models import QuerySet
 from django.forms import Field
 from django.utils.datetime_safe import datetime
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import ugettext_lazy as _
 
 from plusforms.form_widgets import CaptchaWidget
+
+logger = logging.getLogger('plusforms')
 
 
 def get_class_from_string(class_string: str):
@@ -74,6 +80,8 @@ FORM_FIELDS = [
     'TimeField',
     'DateTimeField',
     'CaptchaField',
+    'SelectField',
+    'SelectMultipleField',
 ]
 
 
@@ -190,15 +198,6 @@ class PixelResolutionValidator:
         min_val_2 = self.min_px_width
         val_1 = height
         val_2 = width
-
-        # check if rotated (needed?)
-        # if self.min_px_width >= self.min_px_height:
-        #     min_val_1 = self.min_px_width
-        #     min_val_2 = self.min_px_height
-        #
-        # if width > height:
-        #     val_1 = width
-        #     val_2 = height
 
         if val_1 < min_val_1 or val_2 < min_val_2:
             raise ValidationError(
@@ -394,3 +393,83 @@ class CaptchaField(forms.Field, BaseFieldMixIn):
             raise ValidationError(
                 _('Wrong Captcha. Please check your Input.')
             )
+
+
+class SelectFieldMixIn(BaseFieldMixIn):
+    template_name = 'plusforms/fields/choice.html'
+    _choices = None
+
+    @classmethod
+    def get_qs_from_content_type(cls, content_type_id: int, filter_kwargs: dict = None) -> QuerySet():
+        try:
+            ct = ContentType.objects.get(id=content_type_id)
+        except ContentType.DoesNotExist:
+            raise ContentType.DoesNotExist(
+                f'Couldn\'t find ContentType with id {content_type_id} for generating choices'
+            )
+
+        if filter_kwargs:
+            try:
+                return ct.model_class().objects.filter(**filter_kwargs)
+            except FieldError as e:
+                logger.error(f'Can not filter model "{ct.model_class().__name__}" with {filter_kwargs}. {e}')
+                return ct.model_class().objects.none()
+
+        else:
+            return ct.model_class().objects.all()
+
+    @staticmethod
+    def get_tuple_from_data(data):
+        return [(obj['value'], obj['name']) for obj in data]
+
+    @staticmethod
+    def get_tuple_from_qs(queryset: QuerySet, display_attribute_name: str = None) -> List[Tuple]:
+        """
+        :param queryset: QuerySet to make tuple of
+        :param display_attribute_name: Change displayed value in select by getting given attribute from object.
+        """
+        r = []
+        ct = ContentType.objects.get_for_model(queryset.model)
+        for obj in queryset:
+            value = f'ct_{ct.id}_{obj.id}'
+            display_str = str(obj)
+            if display_attribute_name:
+                display_str = getattr(obj, display_attribute_name, obj)
+            r.append((value, display_str))
+        return r
+
+    @classmethod
+    def bound_field_values(cls, field_data):
+        field_kwargs = super(SelectFieldMixIn, cls).bound_field_values(field_data)
+        choices_static = field_data.get('choices_static')
+        choices_dynamic_content_type_id = field_data.get('choices_dynamic')
+        choices_dynamic_filter = field_data.get('choices_dynamic_filter')
+        choices_allow_empty = field_data.get('choices_allow_empty')
+
+        choices = []
+
+        if choices_dynamic_content_type_id:
+            choices = cls.get_tuple_from_qs(
+                cls.get_qs_from_content_type(
+                    choices_dynamic_content_type_id,
+                    choices_dynamic_filter if bool(choices_dynamic_filter) else None
+                )
+            )
+        elif choices_static:
+            choices = cls.get_tuple_from_data(choices_static)
+
+        if choices_allow_empty:
+            choices.insert(0, ('', '------'))
+
+        field_kwargs['choices'] = choices
+        return field_kwargs
+
+
+class SelectField(forms.ChoiceField, SelectFieldMixIn):
+    widget_class = 'form-control'
+    widget = forms.Select
+
+
+class SelectMultipleField(forms.MultipleChoiceField, SelectFieldMixIn):
+    widget_class = 'form-control'
+    widget = forms.SelectMultiple

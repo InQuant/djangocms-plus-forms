@@ -13,6 +13,7 @@
       {% elif user_form.errors %}
         <div class="alert alert-danger">
           <div class="lead">{{ instance.glossary.button_text }} {% trans "fehlgeschlagen." %}</div>
+          {{ user_form.errors }}
         </div>
       {% else %}
         <div class="alert alert-success lead">

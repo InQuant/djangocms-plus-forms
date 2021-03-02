@@ -1,4 +1,5 @@
 from uuid import uuid4
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from jsonfield import JSONField
@@ -17,4 +18,4 @@ class SubmittedForm(models.Model):
     updated_on = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return self.name or str(self.uuid)

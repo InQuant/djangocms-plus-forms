@@ -1,17 +1,18 @@
-jQuery(function ($) {
+jQuery(document).ready(function ($) {
     let form = $('form');
     let select = form.find('#id_field_type');
     let fieldset = form.find('.file_input--wrapper')
     let fieldset_img = form.find('.image_input--wrapper')
+    let select_options_img = form.find('.select-options--wrapper')
 
-    if (select.val() !== "FileField" && select.val() !== "ImageField") {
-        fieldset.hide();
-        fieldset_img.hide();
-    }
+    trigger(select.val())
 
-    select.on('change',(e) => {
+    select.on('change', (e) => {
         let value = this.activeElement.value;
+        trigger(value)
+    });
 
+    function trigger(value) {
         if (value === "FileField" || value === "ImageField") {
             fieldset.show();
         } else {
@@ -23,5 +24,11 @@ jQuery(function ($) {
         } else {
             fieldset_img.hide()
         }
-    });
+
+        if (value === "SelectField" || value === "SelectMultipleField") {
+            select_options_img.show();
+        } else {
+            select_options_img.hide();
+        }
+    }
 });

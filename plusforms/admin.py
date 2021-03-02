@@ -8,6 +8,7 @@ from plusforms.models import SubmittedForm
 
 @admin.register(SubmittedForm)
 class SubmittedFormAdmin(admin.ModelAdmin):
+    ordering = ['-created_on', ]
     change_form_template = "plusforms/admin/change_submitted_form.html"
 
     readonly_fields = ['name', 'get_by_user', 'uuid', ]
@@ -32,4 +33,4 @@ class SubmittedFormAdmin(admin.ModelAdmin):
     get_by_user.short_description = get_user_model()._meta.verbose_name
 
     def get_name(self, obj):
-        return obj.__str__()
+        return str(obj)

@@ -6,8 +6,11 @@ from cmsplus.models import PlusPlugin
 from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
 from django import forms
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.validators import get_available_image_extensions
+from django.db.models import QuerySet
 from django.utils.translation import ugettext_lazy as _
+from jsonfield.forms import JSONField
 
 from plusforms.form_fields import get_available_form_fields, get_class
 from plusforms.forms import PlusFormBase
@@ -192,6 +195,29 @@ class FormFieldPluginForm(PlusPluginFormBase):
     min_px_width = forms.IntegerField(required=False)
     min_px_height = forms.IntegerField(required=False)
 
+    # select field
+    choices_static = JSONField(
+        widget=forms.Textarea,
+        help_text="format: [{'name': 'Example', 'value': 'example'}, {'name': 'Example2', 'value': 'example2'}]",
+        required=False,
+        initial=[]
+    )
+    choices_dynamic = forms.ChoiceField(
+        help_text=_('Choose a Model Class'),
+        required=False,
+    )
+    choices_dynamic_filter = JSONField(
+        help_text=_('kwargs for filter(). e.g. {"name": "test"}'),
+        required=False,
+        initial={}
+    )
+    choices_allow_empty = forms.BooleanField(
+        initial=False,
+        required=False,
+        label=_('Allow empty value'),
+        help_text=_('Allow user to choice empty values')
+    )
+
     @staticmethod
     def get_field_type_choices():
         r = []
@@ -204,6 +230,32 @@ class FormFieldPluginForm(PlusPluginFormBase):
         super(FormFieldPluginForm, self).__init__(*args, **kwargs)
         # set field choices
         self.fields['field_type'].choices = self.get_field_type_choices
+
+        # add empty option for content_type selcection
+        self.fields['choices_dynamic'].choices.append(('', '---------'))
+
+        self.fields['choices_dynamic'].choices += [
+            (f'{ct.id}', f'{ct.name} ({ct.app_label})') for ct in self.get_choices_contenttypes_qs()
+        ]
+
+    def get_choices_contenttypes_qs(self) -> QuerySet(ContentType):
+        exclude_app_labels = [
+            'cms',
+            'auth',
+            'admin',
+            'django',
+            'sessions',
+            'contenttypes',
+            'authtoken',
+            'authtoken',
+            'socialaccount',
+        ]
+        cts = []
+        for ct in ContentType.objects.exclude(app_label__in=exclude_app_labels):
+            if not ct.model_class():
+                continue
+            cts.append(ct)
+        return cts
 
 
 @plugin_pool.register_plugin
@@ -226,11 +278,15 @@ class GenericFieldPlugin(PlusPluginBase):
         }),
         (_('FileInput Options'), {
             'classes': ('file_input--wrapper',),
-            'fields': ('max_mb', 'allowed_extensions', ),
+            'fields': ('max_mb', 'allowed_extensions',),
         }),
         (_('ImageInput Options'), {
             'classes': ('image_input--wrapper',),
             'fields': ('min_px_width', 'min_px_height'),
+        }),
+        (_('Select Options'), {
+            'classes': ('select-options--wrapper',),
+            'fields': ('choices_dynamic', 'choices_dynamic_filter', 'choices_static', 'choices_allow_empty'),
         }),
     )
 
