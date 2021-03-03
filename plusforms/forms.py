@@ -1,11 +1,12 @@
 import os
+from copy import deepcopy
 from uuid import uuid4
 
-from django.conf import settings
 from django import forms
-from django.core.files import File
+from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from django.core.files import File
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.forms.fields import FileField
 
 from .models import SubmittedForm
@@ -38,8 +39,16 @@ class PlusFormBase(forms.ModelForm):
         super().__init__(*args, initial=initial, **kwargs)
 
     def clean(self):
-        cleaned_data = super().clean()
-        cleaned_data.update(self.serialize_form_data())
+        self.cleaned_data = super().clean()
+        self.cleaned_data.update(self.serialize_form_data())
+
+        # check if field value should be added to submitted forms via cleaned data (e.g. Captcha Field)
+        _cleaned_data = deepcopy(self.cleaned_data)
+        for key in _cleaned_data.keys():
+            if not self.fields[key].in_submitted_form_data:
+                self.cleaned_data.pop(key)
+
+        return self.cleaned_data
 
     def save(self, commit=True):
         """
@@ -85,7 +94,7 @@ class PlusFormBase(forms.ModelForm):
         :rtype: dict
         """
         parsed_data = {}
-        for key in self.declared_fields.keys():
+        for key, field in self.declared_fields.items():
             value = self.cleaned_data.get(key)
             if key.startswith('_'):
                 continue

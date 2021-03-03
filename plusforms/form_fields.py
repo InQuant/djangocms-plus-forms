@@ -86,6 +86,8 @@ FORM_FIELDS = [
 
 
 class BaseFieldMixIn:
+    in_submitted_form_data = True
+
     def serialize_field(self, value):
         return value
 
@@ -381,6 +383,7 @@ class DecimalField(forms.DecimalField, BaseFieldMixIn):
 
 
 class CaptchaField(forms.Field, BaseFieldMixIn):
+    in_submitted_form_data = False
     widget = CaptchaWidget
     template_name = "plusforms/fields/captcha.html"
     widget_class = 'form-control'
