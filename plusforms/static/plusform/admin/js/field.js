@@ -4,6 +4,9 @@ jQuery(document).ready(function ($) {
     let fieldset = form.find('.file_input--wrapper')
     let fieldset_img = form.find('.image_input--wrapper')
     let select_options_img = form.find('.select-options--wrapper')
+    let required_checkbox = form.find('#id_required')[0]
+
+    let tmpRequiredCheckedState = required_checkbox.checked
 
     trigger(select.val())
 
@@ -17,6 +20,15 @@ jQuery(document).ready(function ($) {
             fieldset.show();
         } else {
             fieldset.hide();
+        }
+
+
+        if (value === "CaptchaField") {
+            required_checkbox.checked = true;
+            required_checkbox.disabled = true;
+        } else {
+            required_checkbox.checked = tmpRequiredCheckedState;
+            required_checkbox.disabled = false;
         }
 
         if (value === "ImageField") {
