@@ -165,6 +165,7 @@ class GenericFormPlugin(PlusPluginBase):
                     context['plus_form'] = obj
                     self.post_save(request, context, instance, obj)
                 except Exception as e:
+                    self.user_form._errors['non_field_errors'] = e
                     logger.error(str(e))
         else:
             # init for get
@@ -209,6 +210,7 @@ class FormFieldPluginForm(PlusPluginFormBase):
         label=_('Choices (dynamic)')
     )
     choices_dynamic_filter = JSONField(
+        widget=forms.Textarea,
         help_text=_('kwargs for filter(). e.g. {"name": "test"}'),
         required=False,
         initial={},

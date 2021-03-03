@@ -66,7 +66,7 @@ class PlusFormBase(forms.ModelForm):
 
         if self.request:
             self.instance.meta_data = self._get_meta_data(self.request)
-            self.instance.by_user = self.request.user
+            self.instance.by_user = self.request.user if self.request.user.is_authenticated else None
 
         # handle upload for file fields
         for key, field in self.fields.items():
