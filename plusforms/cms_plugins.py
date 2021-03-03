@@ -155,7 +155,7 @@ class GenericFormPlugin(PlusPluginBase):
         sf = context.get('plus_form')
         if request.POST and request.POST.get('form-%s' % instance.id):
             name = sf.name if sf else self.get_identifier(instance)
-            self.user_form = user_form_cls(request.POST, request.FILES, name=name, request=request, instance=sf)
+            self.user_form = user_form_cls(request.POST, request.FILES, plugin_instance=instance, request=request, instance=sf)
 
             # validate and save
             if self.user_form.is_valid():

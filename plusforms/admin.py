@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.translation import ugettext_lazy as _
 
 from plusforms.models import SubmittedForm
 
@@ -11,7 +12,7 @@ class SubmittedFormAdmin(admin.ModelAdmin):
     ordering = ['-created_on', ]
     change_form_template = "plusforms/admin/change_submitted_form.html"
 
-    readonly_fields = ['name', 'get_by_user', 'uuid', ]
+    readonly_fields = ['name', 'get_description_meta_data', 'get_by_user', 'uuid', 'get_form_id_meta_data']
     exclude = ['form_data', 'meta_data', ]
 
     list_display = ['get_name', 'by_user', 'created_on', ]
@@ -34,3 +35,19 @@ class SubmittedFormAdmin(admin.ModelAdmin):
 
     def get_name(self, obj):
         return str(obj)
+
+    def get_description_meta_data(self, obj):
+        try:
+            return obj.meta_data['plugin']['glossary']['description'] or "-"
+        except (KeyError, TypeError):
+            return "-"
+
+    get_description_meta_data.short_description = _('Description')
+
+    def get_form_id_meta_data(self, obj):
+        try:
+            return obj.meta_data['plugin']['glossary']['form_id']
+        except (KeyError, TypeError):
+            return "-"
+
+    get_form_id_meta_data.short_description = _('Form identifier')

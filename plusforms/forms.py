@@ -23,7 +23,9 @@ class PlusFormBase(forms.ModelForm):
         model = SubmittedForm
         exclude = ['name', 'by_user', 'form_data', 'meta_data']
 
-    def __init__(self, *args, name=None, request=None, **kwargs):
+    def __init__(self, *args, name=None, request=None, plugin_instance=None, **kwargs):
+        if plugin_instance:
+            self.plugin_instance = plugin_instance
 
         initial = {}
         if kwargs.get('initial'):
@@ -59,8 +61,9 @@ class PlusFormBase(forms.ModelForm):
 
         self.instance.form_data = self.cleaned_data
 
-        if self.name:
-            self.instance.name = self.name
+        _glossary = self.plugin_instance.glossary
+        self.instance.name = _glossary.get('name', _glossary['form_id'])
+
         if self.request:
             self.instance.meta_data = self._get_meta_data(self.request)
             self.instance.by_user = self.request.user
@@ -77,14 +80,23 @@ class PlusFormBase(forms.ModelForm):
         return super().save(commit)
 
     def _get_meta_data(self, request):
-        return {
+        meta_data = {
             'host': request.META.get('HTTP_HOST'),
             'origin': request.META.get('HTTP_ORIGIN'),
             'referrer': request.META.get('HTTP_REFERER'),
             'user_agent': request.META.get('HTTP_USER_AGENT'),
             'remote_ip': get_client_ip(request),
-            'form_field_types': dict([(key, field.widget.type) for key, field in self.declared_fields.items()])
+            'form_field_types': dict([(key, field.widget.type) for key, field in self.declared_fields.items()]),
         }
+        if self.plugin_instance:
+            meta_data.update({
+                'plugin': {
+                    'plugin_id': self.plugin_instance.id,
+                    'plugin_class': self.plugin_instance.__class__.__name__,
+                    'glossary': self.plugin_instance.glossary,
+                }
+            })
+        return meta_data
 
     def serialize_form_data(self):
         """
