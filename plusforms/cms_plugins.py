@@ -198,18 +198,21 @@ class FormFieldPluginForm(PlusPluginFormBase):
     # select field
     choices_static = JSONField(
         widget=forms.Textarea,
-        help_text="format: [{'name': 'Example', 'value': 'example'}, {'name': 'Example2', 'value': 'example2'}]",
+        help_text='format: [{"name": "Example", "value": "example"}, {"name": "Example2", "value": "example2"}]',
         required=False,
-        initial=[]
+        initial=[],
+        label=_('Auswahl (statisch)')
     )
     choices_dynamic = forms.ChoiceField(
         help_text=_('Choose a Model Class'),
         required=False,
+        label=_('Auswahl (dynamisch)')
     )
     choices_dynamic_filter = JSONField(
         help_text=_('kwargs for filter(). e.g. {"name": "test"}'),
         required=False,
-        initial={}
+        initial={},
+        label=_('Filter')
     )
     choices_allow_empty = forms.BooleanField(
         initial=False,
