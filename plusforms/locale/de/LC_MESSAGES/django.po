@@ -1,0 +1,201 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-03-03 13:52+0100\n"
+"PO-Revision-Date: 2021-03-03 14:00+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 2.4.2\n"
+
+#: cms_plugins.py:82
+msgid "Form identifier"
+msgstr "Formular-ID"
+
+#: cms_plugins.py:84
+msgid "Success text"
+msgstr "Text bei Erfolg"
+
+#: cms_plugins.py:85
+msgid "Submit button text"
+msgstr "Einreichen-Schaltflächen Text"
+
+#: cms_plugins.py:85
+msgid "Submit"
+msgstr "Einreichen"
+
+#: cms_plugins.py:87
+msgid "Name"
+msgstr "Name"
+
+#: cms_plugins.py:88
+msgid "Description"
+msgstr "Beschreibung"
+
+#: cms_plugins.py:101
+msgid "Form"
+msgstr "Formular"
+
+#: cms_plugins.py:180
+msgid "Identifier"
+msgstr "ID"
+
+#: cms_plugins.py:181
+msgid ""
+"This will be the id and name attribute of this input. Needs to be unique "
+"inside a form!"
+msgstr ""
+"Dies ist das id und name Attribut dieser Eingabe. Dies muss in einem "
+"Formular einzigartig sein!"
+
+#: cms_plugins.py:185
+msgid "Required"
+msgstr "Erforderlich"
+
+#: cms_plugins.py:187
+msgid "Label"
+msgstr "Label"
+
+#: cms_plugins.py:188
+msgid "Help text"
+msgstr "Hilfe Text"
+
+#: cms_plugins.py:189
+msgid "Placeholder"
+msgstr "Platzhalter"
+
+#: cms_plugins.py:204
+msgid "Choices (static)"
+msgstr "Auswahl (statisch)"
+
+#: cms_plugins.py:207
+msgid "Choose a Model Class"
+msgstr "Model-Klasse auswählen"
+
+#: cms_plugins.py:209
+msgid "Choices (dynamic)"
+msgstr "Auswahl (dynamisch)"
+
+#: cms_plugins.py:212
+msgid "kwargs for filter(). e.g. {\"name\": \"test\"}"
+msgstr "kwargs für die filter() Funktion z. B. {\"name\": \"test\"}"
+
+#: cms_plugins.py:215
+msgid "Filter"
+msgstr "Filter"
+
+#: cms_plugins.py:220
+msgid "Allow empty value"
+msgstr "Leere Auswahl erlauben"
+
+#: cms_plugins.py:221
+msgid "Allow user to choice empty values"
+msgstr "Dem Nutzer die Auswahl eines leeren Wertes erlauben"
+
+#: cms_plugins.py:268
+msgid "Field"
+msgstr "Feld"
+
+#: cms_plugins.py:282
+msgid "FileInput Options"
+msgstr "Dateifeld Optionen"
+
+#: cms_plugins.py:286
+msgid "ImageInput Options"
+msgstr "Bildfeld Optionen"
+
+#: cms_plugins.py:290
+msgid "Select Options"
+msgstr "Auswahlfeld Optionen"
+
+#: form_fields.py:149
+msgid "Text field"
+msgstr "Textfeld"
+
+#: form_fields.py:155
+msgid "Textarea field"
+msgstr "Textbereichfeld"
+
+#: form_fields.py:162
+msgid "Password field"
+msgstr "Passwortfeld"
+
+#: form_fields.py:168
+msgid "Email field"
+msgstr "Emailfeld"
+
+#: form_fields.py:172
+msgid "Checkbox field"
+msgstr "Checkboxfeld"
+
+#: form_fields.py:181
+#, python-format
+msgid ""
+"Minimum image pixel resolution must be %(min_px_width)s x %(min_px_height)s. "
+"Uploaded image resolution is %(width)s x %(height)s."
+msgstr ""
+"Minimum Bildpixel Auflösung muss %(min_px_width)s x %(min_px_height)s "
+"betragen. Hochgeladenes Bild hat die Auflösung %(width)s x %(height)s."
+
+#: form_fields.py:218
+#, python-format
+msgid ""
+"File size of '%(size)sMB' is not allowed. Maximum allowed file size is: "
+"'%(allowed_size)sMB'."
+msgstr ""
+"Die ausgewählte Datei (%(size)sMB) ist zu groß. Maximale Dateigröße beträgt "
+"'%(allowed_size)sMB'."
+
+#: form_fields.py:274
+msgid "File Field"
+msgstr "Dateifeld"
+
+#: form_fields.py:280
+msgid "Image Field"
+msgstr "Bildfeld"
+
+#: form_fields.py:317
+msgid "Date Field"
+msgstr "Datumsfeld"
+
+#: form_fields.py:331
+msgid "Time Field"
+msgstr "Zeitfeld"
+
+#: form_fields.py:345
+msgid "Date Time Field"
+msgstr "Datums- und Zeitfeld"
+
+#: form_fields.py:359
+msgid "URL Field"
+msgstr "URL Feld"
+
+#: form_fields.py:366
+msgid "Integer Field"
+msgstr "Zahlenfeld"
+
+#: form_fields.py:372
+msgid "Float Field"
+msgstr "Float-Feld"
+
+#: form_fields.py:378
+msgid "Decimal Field"
+msgstr "Dezimalfeld"
+
+#: form_fields.py:394
+msgid "Wrong Captcha. Please check your Input."
+msgstr "Falsches Captcha. Bitte überprüfen Sie Ihre Eingabe."
+
+#: templates/plusforms/base_form.html:10 templates/plusforms/base_form.html:15
+msgid "failed."
+msgstr "fehlgeschlagen."

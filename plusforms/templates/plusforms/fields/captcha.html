@@ -5,7 +5,9 @@
 
   {% for widget in field.subwidgets %}{{ widget }}{% endfor %}
 
-  <div class="invalid-feedback">{{ field.errors|join:". " }}</div>
+  {% if request.POST and field.errors %}
+    <div class="invalid-feedback d-block">{{ field.errors|join:". " }}</div>
+  {% endif %}
 
   {% if field.help_text %}
     <small class="form-text text-muted">{{ field.help_text }}</small>

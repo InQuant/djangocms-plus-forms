@@ -201,12 +201,12 @@ class FormFieldPluginForm(PlusPluginFormBase):
         help_text='format: [{"name": "Example", "value": "example"}, {"name": "Example2", "value": "example2"}]',
         required=False,
         initial=[],
-        label=_('Auswahl (statisch)')
+        label=_('Choices (static)')
     )
     choices_dynamic = forms.ChoiceField(
         help_text=_('Choose a Model Class'),
         required=False,
-        label=_('Auswahl (dynamisch)')
+        label=_('Choices (dynamic)')
     )
     choices_dynamic_filter = JSONField(
         help_text=_('kwargs for filter(). e.g. {"name": "test"}'),
