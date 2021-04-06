@@ -9,13 +9,13 @@ from plusforms.models import SubmittedForm
 
 @admin.register(SubmittedForm)
 class SubmittedFormAdmin(admin.ModelAdmin):
-    ordering = ['-created_on', ]
+    ordering = ['-updated_on', ]
     change_form_template = "plusforms/admin/change_submitted_form.html"
 
     readonly_fields = ['name', 'get_description_meta_data', 'get_by_user', 'uuid', 'get_form_id_meta_data']
     exclude = ['form_data', 'meta_data', ]
 
-    list_display = ['get_name', 'by_user', 'created_on', ]
+    list_display = ['get_name', 'by_user', 'updated_on']
 
     def get_by_user(self, obj):
         link_href = reverse(
