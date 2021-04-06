@@ -1,1 +1,19 @@
-{{ field }}
+{% load cms_tags i18n %}
+<div class="form-group{% if request.POST and not field.errors %} was-validated{% endif %}">
+
+  {{ field.label_tag }}
+  {{ field }}
+
+  {% if request.POST and field.errors %}
+    <div class="invalid-feedback d-block">{{ field.errors|join:". " }}</div>
+  {% endif %}
+
+  {% if field.help_text %}
+    <small class="form-text text-muted">{{ field.help_text }}</small>
+  {% endif %}
+
+  {% for plugin in instance.child_plugin_instances %}
+    {% render_plugin plugin %}
+  {% endfor %}
+
+</div>
