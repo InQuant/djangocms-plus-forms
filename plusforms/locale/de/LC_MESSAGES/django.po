@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-03-03 13:52+0100\n"
+"POT-Creation-Date: 2021-07-26 04:24-0500\n"
 "PO-Revision-Date: 2021-03-03 14:00+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -18,9 +18,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 2.4.2\n"
 
-#: cms_plugins.py:82
+#: admin.py:43 cms_plugins.py:87
+msgid "Name"
+msgstr "Name"
+
+#: admin.py:51 cms_plugins.py:88
+msgid "Description"
+msgstr "Beschreibung"
+
+#: admin.py:59 cms_plugins.py:82
 msgid "Form identifier"
 msgstr "Formular-ID"
+
+#: admin.py:63
+msgid "Error! Please first filter objects by \"Name\""
+msgstr "Fehler! Bitte filtern Sie die Zeilen zunächst nach dem Feld \"Name\""
+
+#: admin.py:80
+msgid "Export rows to CSV (filtered by Name)"
+msgstr "Gefilterte Zeilen exportieren"
 
 #: cms_plugins.py:84
 msgid "Success text"
@@ -34,23 +50,15 @@ msgstr "Einreichen-Schaltflächen Text"
 msgid "Submit"
 msgstr "Einreichen"
 
-#: cms_plugins.py:87
-msgid "Name"
-msgstr "Name"
-
-#: cms_plugins.py:88
-msgid "Description"
-msgstr "Beschreibung"
-
 #: cms_plugins.py:101
 msgid "Form"
 msgstr "Formular"
 
-#: cms_plugins.py:180
+#: cms_plugins.py:181
 msgid "Identifier"
 msgstr "ID"
 
-#: cms_plugins.py:181
+#: cms_plugins.py:182
 msgid ""
 "This will be the id and name attribute of this input. Needs to be unique "
 "inside a form!"
@@ -58,87 +66,87 @@ msgstr ""
 "Dies ist das id und name Attribut dieser Eingabe. Dies muss in einem "
 "Formular einzigartig sein!"
 
-#: cms_plugins.py:185
+#: cms_plugins.py:186
 msgid "Required"
 msgstr "Erforderlich"
 
-#: cms_plugins.py:187
+#: cms_plugins.py:188
 msgid "Label"
 msgstr "Label"
 
-#: cms_plugins.py:188
+#: cms_plugins.py:189
 msgid "Help text"
 msgstr "Hilfe Text"
 
-#: cms_plugins.py:189
+#: cms_plugins.py:190
 msgid "Placeholder"
 msgstr "Platzhalter"
 
-#: cms_plugins.py:204
+#: cms_plugins.py:205
 msgid "Choices (static)"
 msgstr "Auswahl (statisch)"
 
-#: cms_plugins.py:207
+#: cms_plugins.py:208
 msgid "Choose a Model Class"
 msgstr "Model-Klasse auswählen"
 
-#: cms_plugins.py:209
+#: cms_plugins.py:210
 msgid "Choices (dynamic)"
 msgstr "Auswahl (dynamisch)"
 
-#: cms_plugins.py:212
+#: cms_plugins.py:214
 msgid "kwargs for filter(). e.g. {\"name\": \"test\"}"
 msgstr "kwargs für die filter() Funktion z. B. {\"name\": \"test\"}"
 
-#: cms_plugins.py:215
+#: cms_plugins.py:217
 msgid "Filter"
 msgstr "Filter"
 
-#: cms_plugins.py:220
+#: cms_plugins.py:222
 msgid "Allow empty value"
 msgstr "Leere Auswahl erlauben"
 
-#: cms_plugins.py:221
+#: cms_plugins.py:223
 msgid "Allow user to choice empty values"
 msgstr "Dem Nutzer die Auswahl eines leeren Wertes erlauben"
 
-#: cms_plugins.py:268
+#: cms_plugins.py:270
 msgid "Field"
 msgstr "Feld"
 
-#: cms_plugins.py:282
+#: cms_plugins.py:284
 msgid "FileInput Options"
 msgstr "Dateifeld Optionen"
 
-#: cms_plugins.py:286
+#: cms_plugins.py:288
 msgid "ImageInput Options"
 msgstr "Bildfeld Optionen"
 
-#: cms_plugins.py:290
+#: cms_plugins.py:292
 msgid "Select Options"
 msgstr "Auswahlfeld Optionen"
 
-#: form_fields.py:149
+#: form_fields.py:151
 msgid "Text field"
 msgstr "Textfeld"
 
-#: form_fields.py:155
+#: form_fields.py:157
 msgid "Textarea field"
 msgstr "Textbereichfeld"
 
-#: form_fields.py:162
+#: form_fields.py:164
 msgid "Password field"
 msgstr "Passwortfeld"
 
-#: form_fields.py:168
+#: form_fields.py:170
 msgid "Email field"
 msgstr "Emailfeld"
 
-#: form_fields.py:172
+#: form_fields.py:174
 msgid "Checkbox field"
 msgstr "Checkboxfeld"
 
-#: form_fields.py:181
+#: form_fields.py:183
 #, python-format
 msgid ""
 "Minimum image pixel resolution must be %(min_px_width)s x %(min_px_height)s. "
@@ -147,7 +155,7 @@ msgstr ""
 "Minimum Bildpixel Auflösung muss %(min_px_width)s x %(min_px_height)s "
 "betragen. Hochgeladenes Bild hat die Auflösung %(width)s x %(height)s."
 
-#: form_fields.py:218
+#: form_fields.py:220
 #, python-format
 msgid ""
 "File size of '%(size)sMB' is not allowed. Maximum allowed file size is: "
@@ -156,43 +164,43 @@ msgstr ""
 "Die ausgewählte Datei (%(size)sMB) ist zu groß. Maximale Dateigröße beträgt "
 "'%(allowed_size)sMB'."
 
-#: form_fields.py:274
+#: form_fields.py:276
 msgid "File Field"
 msgstr "Dateifeld"
 
-#: form_fields.py:280
+#: form_fields.py:282
 msgid "Image Field"
 msgstr "Bildfeld"
 
-#: form_fields.py:317
+#: form_fields.py:319
 msgid "Date Field"
 msgstr "Datumsfeld"
 
-#: form_fields.py:331
+#: form_fields.py:333
 msgid "Time Field"
 msgstr "Zeitfeld"
 
-#: form_fields.py:345
+#: form_fields.py:347
 msgid "Date Time Field"
 msgstr "Datums- und Zeitfeld"
 
-#: form_fields.py:359
+#: form_fields.py:361
 msgid "URL Field"
 msgstr "URL Feld"
 
-#: form_fields.py:366
+#: form_fields.py:368
 msgid "Integer Field"
 msgstr "Zahlenfeld"
 
-#: form_fields.py:372
+#: form_fields.py:374
 msgid "Float Field"
 msgstr "Float-Feld"
 
-#: form_fields.py:378
+#: form_fields.py:380
 msgid "Decimal Field"
 msgstr "Dezimalfeld"
 
-#: form_fields.py:394
+#: form_fields.py:397
 msgid "Wrong Captcha. Please check your Input."
 msgstr "Falsches Captcha. Bitte überprüfen Sie Ihre Eingabe."
 
