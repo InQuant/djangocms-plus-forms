@@ -7,11 +7,13 @@ from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
 from django import forms
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import get_available_image_extensions
 from django.db.models import QuerySet
 from django.utils.translation import ugettext_lazy as _
 from jsonfield.forms import JSONField
 
+import plusforms.form_fields
 from plusforms.form_fields import get_available_form_fields, get_class
 from plusforms.forms import PlusFormBase
 from plusforms.models import SubmittedForm
@@ -155,7 +157,8 @@ class GenericFormPlugin(PlusPluginBase):
         sf = context.get('plus_form')
         if request.POST and request.POST.get('form-%s' % instance.id):
             name = sf.name if sf else self.get_identifier(instance)
-            self.user_form = user_form_cls(request.POST, request.FILES, plugin_instance=instance, request=request, instance=sf)
+            self.user_form = user_form_cls(request.POST, request.FILES, plugin_instance=instance, request=request,
+                                           instance=sf)
 
             # validate and save
             if self.user_form.is_valid():
@@ -188,6 +191,11 @@ class FormFieldPluginForm(PlusPluginFormBase):
     label = forms.CharField(label=_('Label'), required=False)
     help_text = forms.CharField(label=_('Help text'), required=False)
     field_placeholder = forms.CharField(label=_('Placeholder'), required=False)
+
+    max_length = forms.IntegerField(required=False)
+
+    px_width = forms.IntegerField(required=False)
+    px_height = forms.IntegerField(required=False)
 
     # if file or image
     max_mb = forms.IntegerField(required=False)
@@ -262,6 +270,15 @@ class FormFieldPluginForm(PlusPluginFormBase):
             cts.append(ct)
         return cts
 
+    def clean(self):
+        min_w = self.cleaned_data.get('min_px_width')
+        min_h = self.cleaned_data.get('min_px_height')
+        px_w = self.cleaned_data.get('px_width')
+        px_h = self.cleaned_data.get('px_height')
+        if (min_w or min_h) and (px_w or px_h):
+            raise ValidationError(_('You can not select min and max pixels together with exact pixels.'))
+        return super().clean()
+
 
 @plugin_pool.register_plugin
 class GenericFieldPlugin(PlusPluginBase):
@@ -281,13 +298,17 @@ class GenericFieldPlugin(PlusPluginBase):
                 'field_placeholder',
             )
         }),
+        (_('TextField Options'), {
+            'classes': ('text_field--wrapper',),
+            'fields': ('max_length',),
+        }),
         (_('FileInput Options'), {
             'classes': ('file_input--wrapper',),
-            'fields': ('max_mb', 'allowed_extensions',),
+            'fields': ('max_mb', 'allowed_extensions'),
         }),
         (_('ImageInput Options'), {
             'classes': ('image_input--wrapper',),
-            'fields': ('min_px_width', 'min_px_height'),
+            'fields': ('min_px_width', 'min_px_height', 'px_width', 'px_height'),
         }),
         (_('Select Options'), {
             'classes': ('select-options--wrapper',),

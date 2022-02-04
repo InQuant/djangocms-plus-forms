@@ -152,6 +152,15 @@ class InputField(forms.CharField, BaseFieldMixIn):
     template_name = "plusforms/fields/input.html"
     widget_class = 'form-control'
 
+    @classmethod
+    def bound_field_values(cls, field_data):
+        field_kwargs = super(InputField, cls).bound_field_values(field_data)
+        max_length = field_data.get('max_length')
+        if max_length:
+            field_kwargs['max_length'] = max_length
+            field_kwargs['help_text'] += (' %s' % _("Max. length: %s" % max_length)).strip()
+        return field_kwargs
+
 
 class TextField(InputField):
     name = _('Textarea field')
@@ -178,7 +187,40 @@ class CheckboxField(forms.BooleanField, BaseFieldMixIn):
 
 
 @deconstructible
-class PixelResolutionValidator:
+class ExactPixelResolutionValidator:
+    message = _(
+        "Image pixel resolution must be %(px_width)s x %(px_height)s. "
+        "Uploaded image resolution is %(width)s x %(height)s."
+    )
+    code = 'invalid_pixel_resolution'
+
+    def __init__(self, px_width=None, px_height=None, message=None, code=None):
+        self.px_width = px_width
+        self.px_height = px_height
+
+        if message is not None:
+            self.message = message
+        if code is not None:
+            self.code = code
+
+    def __call__(self, file: InMemoryUploadedFile):
+        width, height = get_image_dimensions(file)
+
+        if self.px_height != height or self.px_width != width:
+            raise ValidationError(
+                self.message,
+                code=self.code,
+                params={
+                    'px_width': self.px_width,
+                    'px_height': self.px_height,
+                    'width': width,
+                    'height': height,
+                }
+            )
+
+
+@deconstructible
+class MinPixelResolutionValidator:
     message = _(
         "Minimum image pixel resolution must be %(min_px_width)s x %(min_px_height)s. "
         "Uploaded image resolution is %(width)s x %(height)s."
@@ -265,10 +307,13 @@ class FileValidationMixin:
 
 
 class ImageValidationMixIn(FileValidationMixin):
-    def __init__(self, *, min_px_width=None, min_px_height=None, **kwargs):
+    def __init__(self, *, min_px_width=None, min_px_height=None, px_width=None, px_height=None, **kwargs):
         super().__init__(**kwargs)
         if min_px_width is not None or min_px_height is not None:
-            self.validators.append(PixelResolutionValidator(min_px_width, min_px_height))
+            self.validators.append(MinPixelResolutionValidator(min_px_width, min_px_height))
+
+        if px_width and px_height:
+            self.validators.append(ExactPixelResolutionValidator(px_width=px_width, px_height=px_height))
 
 
 class FileField(FileValidationMixin, forms.FileField, FileFieldMixin):
@@ -299,6 +344,15 @@ class ImageField(ImageValidationMixIn, forms.ImageField, FileFieldMixin):
                 "*" if not min_w else "%spx" % min_w,
                 "*" if not min_h else "%spx" % min_h,
             )
+
+        exact_width = field_data.get('px_width')
+        exact_height = field_data.get('px_height')
+        if (exact_width and exact_height) and (not min_w or not min_h):
+            field_kwargs['px_width'] = exact_width
+            field_kwargs['px_height'] = exact_height
+
+            field_kwargs['help_text'] += ' Pixel format: %s x %s. ' % (exact_width, exact_height, )
+
         return field_kwargs
 
 

@@ -45,6 +45,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
 
+    'cms',
+    'menus',
+    'treebeard',
+    'cmsplus',
+
+    'easy_thumbnails',
+    'sekizai',
+
     'plusforms',
     'plusforms.tests',
 ]
@@ -58,6 +66,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'cms.middleware.user.CurrentUserMiddleware',
+    'cms.middleware.page.CurrentPageMiddleware',
+    'cms.middleware.toolbar.ToolbarMiddleware',
+    'cms.middleware.language.LanguageCookieMiddleware',
 ]
 
 TEMPLATES = [
@@ -73,6 +86,7 @@ TEMPLATES = [
                 'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'sekizai.context_processors.sekizai',
             ],
         },
     },

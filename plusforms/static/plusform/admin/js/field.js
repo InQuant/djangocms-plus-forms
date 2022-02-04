@@ -2,6 +2,7 @@ jQuery(document).ready(function ($) {
     let form = $('form');
     let select = form.find('#id_field_type');
     let fieldset = form.find('.file_input--wrapper')
+    let textset_textfield = form.find('.text_field--wrapper')
     let fieldset_img = form.find('.image_input--wrapper')
     let select_options_img = form.find('.select-options--wrapper')
     let required_checkbox = form.find('#id_required')[0]
@@ -20,6 +21,12 @@ jQuery(document).ready(function ($) {
             fieldset.show();
         } else {
             fieldset.hide();
+        }
+
+        if (value === "TextField" || value === "InputField") {
+            textset_textfield.show()
+        } else {
+            textset_textfield.hide()
         }
 
 
