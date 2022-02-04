@@ -158,7 +158,7 @@ class InputField(forms.CharField, BaseFieldMixIn):
         max_length = field_data.get('max_length')
         if max_length:
             field_kwargs['max_length'] = max_length
-            field_kwargs['help_text'] += (' %s' % _("Max. length: %s" % max_length)).strip()
+            field_kwargs['help_text'] += (' %s' % _("Max. length: %s" % max_length))
         return field_kwargs
 
 
