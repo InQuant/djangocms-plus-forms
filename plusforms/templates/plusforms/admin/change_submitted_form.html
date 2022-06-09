@@ -16,7 +16,7 @@
           <td style="padding: .5rem;">
             {% if field_type == 'file' %}
               <a href="{% file_media_url value %}" target="_blank">{{ value }}</a>
-              cha            {% elif field_type == 'select' %}
+            {% elif field_type == 'select' %}
               {% ct_field_admin_link value %}
             {% else %}
               {{ value }}

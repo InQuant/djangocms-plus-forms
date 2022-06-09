@@ -1,5 +1,4 @@
 import csv
-from pprint import pprint
 
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
@@ -8,6 +7,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import ugettext_lazy as _
 
+from plusforms.actions import export_submitted_form_as_zip
 from plusforms.models import SubmittedForm
 
 
@@ -20,6 +20,7 @@ class SubmittedFormAdmin(admin.ModelAdmin):
     readonly_fields = ['name', 'get_description_meta_data', 'get_by_user', 'uuid', 'get_form_id_meta_data']
     exclude = ['form_data', 'meta_data', ]
     list_display = ['get_name', 'by_user', 'updated_on']
+    actions = [export_submitted_form_as_zip, ]
 
     def get_by_user(self, obj):
         link_href = reverse(

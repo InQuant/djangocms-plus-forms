@@ -36,9 +36,22 @@ class PlusFormBase(forms.ModelForm):
             # form_data not in the instance itself
             initial.update(**self.deserialize_form_data(kwargs.get('instance').form_data))
 
+        self.patch_file_fields(initial)
+
         self.name = name
         self.request = request
         super().__init__(*args, initial=initial, **kwargs)
+
+    def patch_file_fields(self, initial: dict):
+        """
+        Monkey patch: Set required to False if inital is set in FileField.
+        The expected behavoir should be: Field is required on create but optional on updates.
+        """
+        for field_name, value in self.base_fields.items():
+            if issubclass(value.__class__, FileField):
+                if not initial.get(field_name):
+                    continue
+                self.base_fields[field_name].required = False
 
     def clean(self):
         self.cleaned_data = super().clean()
