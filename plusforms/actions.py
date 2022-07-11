@@ -50,8 +50,8 @@ def export_submitted_form_as_zip(model_admin: admin.ModelAdmin, request: 'WSGIRe
         csv_writer.writerow(form_fields.keys())
 
         submitted_form: SubmittedForm
+        form_media = []
         for submitted_form in queryset:
-            form_media = []
             form_values = submitted_form.form_data
             if not isinstance(form_values, dict):
                 continue
@@ -64,7 +64,6 @@ def export_submitted_form_as_zip(model_admin: admin.ModelAdmin, request: 'WSGIRe
                         'arcname': form_values[field_name],
                     })
 
-                print(form_values)
                 row.append(form_values.get(field_name))
             csv_writer.writerow(row)
 
