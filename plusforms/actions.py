@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def get_file_path(form_file_value: str):
     media_url = urlparse(form_file_value)
-    media_path = media_url.path.replace(settings.MEDIA_URL[1:], '')
+    media_path = str(media_url.path).replace(settings.MEDIA_URL[1:], '')
     return os.path.join(settings.MEDIA_ROOT, media_path)
 
 
@@ -58,7 +58,7 @@ def export_submitted_form_as_zip(model_admin: admin.ModelAdmin, request: 'WSGIRe
 
             row = []
             for field_name, field_type in form_fields.items():
-                if field_type == "file":
+                if field_type == "file" and form_values[field_name]:
                     form_media.append({
                         'filepath': get_file_path(form_values[field_name]),
                         'arcname': form_values[field_name],
@@ -67,6 +67,7 @@ def export_submitted_form_as_zip(model_admin: admin.ModelAdmin, request: 'WSGIRe
                 row.append(form_values.get(field_name))
             csv_writer.writerow(row)
 
+        logger.debug('** form_media: %s' % form_media)
         [_zip.write(media['filepath'], arcname=media['arcname']) for media in form_media]
 
         csv_file.close()
