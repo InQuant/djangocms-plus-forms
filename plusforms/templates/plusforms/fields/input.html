@@ -1,7 +1,7 @@
 {% load cms_tags i18n %}
 <div class="form-group{% if request.POST and not field.errors %} was-validated{% endif %}">
 
-  {{ field.label_tag }}
+  {% if field.required %}<b>* </b>{% endif %}{{ field.label_tag }}
 
   {% for widget in field.subwidgets %}{{ widget }}{% endfor %}
 

@@ -175,6 +175,7 @@ class GenericFormPlugin(PlusPluginBase):
             self.user_form = user_form_cls(instance=sf)
 
         context['user_form'] = self.user_form
+        context['form_id'] = instance.glossary.get('form_id')
         return super(GenericFormPlugin, self).render(context, instance, placeholder)
 
 
@@ -368,6 +369,7 @@ class GenericFieldPlugin(PlusPluginBase):
             form = context['user_form']
             try:
                 bound_field = form[field_id]
+                bound_field.required = form.fields[field_id].required
             except KeyError as e:
                 logger.error(str(e))
                 return context
