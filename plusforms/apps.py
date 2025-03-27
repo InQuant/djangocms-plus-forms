@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class AppNameConfig(AppConfig):
-    name = 'app_name'
+class plusformsConfig(AppConfig):
+    name = 'plusforms'

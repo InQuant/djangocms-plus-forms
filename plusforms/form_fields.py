@@ -4,6 +4,7 @@ import os
 import sys
 from typing import List, Tuple
 
+from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -15,9 +16,8 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import FileExtensionValidator
 from django.db.models import QuerySet
 from django.forms import Field
-from django.utils.datetime_safe import datetime
 from django.utils.deconstruct import deconstructible
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from plusforms.form_widgets import CaptchaWidget
 

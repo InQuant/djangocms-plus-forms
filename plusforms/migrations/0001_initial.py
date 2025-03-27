@@ -3,7 +3,6 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import jsonfield.fields
 
 
 class Migration(migrations.Migration):
@@ -20,8 +19,8 @@ class Migration(migrations.Migration):
             name='SubmittedForm',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('form_data', jsonfield.fields.JSONField(blank=True, null=True)),
-                ('meta_data', jsonfield.fields.JSONField(blank=True, null=True)),
+                ('form_data', models.JSONField(blank=True, null=True)),
+                ('meta_data', models.JSONField(blank=True, null=True)),
                 ('created_on', models.DateTimeField(auto_now_add=True)),
                 ('updated_on', models.DateTimeField(auto_now=True)),
                 ('by_user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),

@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from jsonfield import JSONField
 
 
 class SubmittedForm(models.Model):
@@ -11,8 +10,8 @@ class SubmittedForm(models.Model):
 
     by_user = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True)
 
-    form_data = JSONField()
-    meta_data = JSONField()
+    form_data = models.JSONField()
+    meta_data = models.JSONField()
 
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)

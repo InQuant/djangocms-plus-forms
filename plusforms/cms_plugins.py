@@ -2,18 +2,17 @@ import abc
 import logging
 
 from cms.plugin_pool import plugin_pool
-from cmsplus.models import PlusPlugin
-from cmsplus.plugin_base import PlusPluginBase, PlusPluginFormBase
+from cmsplus.models import PlusItem
+from cmsplus.plugin_base import PlusPlugin
+from cmsplus.forms import PlusPluginFormBase
 from django import forms
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import get_available_image_extensions
 from django.db.models import QuerySet
-from django.utils.translation import ugettext_lazy as _
-from jsonfield.forms import JSONField
+from django.utils.translation import gettext_lazy as _
 
-import plusforms.form_fields
 from plusforms.form_fields import get_available_form_fields, get_class
 from plusforms.forms import PlusFormBase
 from plusforms.models import SubmittedForm
@@ -97,7 +96,7 @@ def snake_to_camel(s):
 
 
 @plugin_pool.register_plugin
-class GenericFormPlugin(PlusPluginBase):
+class GenericFormPlugin(PlusPlugin):
     cache = False
     form = GenericFormPluginForm
     name = _('Form')
@@ -106,7 +105,7 @@ class GenericFormPlugin(PlusPluginBase):
     render_template = 'plusforms/base_form.html'
 
     @staticmethod
-    def field_plugins(instance: PlusPlugin):
+    def field_plugins(instance: PlusItem):
         children = []
         for child in instance.get_children() or []:
             if issubclass(child.get_plugin_class(), GenericFieldPlugin):
@@ -206,7 +205,7 @@ class FormFieldPluginForm(PlusPluginFormBase):
     min_px_height = forms.IntegerField(required=False)
 
     # select field
-    choices_static = JSONField(
+    choices_static = forms.JSONField(
         widget=forms.Textarea,
         help_text='format: [{"name": "Example", "value": "example"}, {"name": "Example2", "value": "example2"}]',
         required=False,
@@ -218,7 +217,7 @@ class FormFieldPluginForm(PlusPluginFormBase):
         required=False,
         label=_('Choices (dynamic)')
     )
-    choices_dynamic_filter = JSONField(
+    choices_dynamic_filter = forms.JSONField(
         widget=forms.Textarea,
         help_text=_('kwargs for filter(). e.g. {"name": "test"}'),
         required=False,
@@ -282,7 +281,7 @@ class FormFieldPluginForm(PlusPluginFormBase):
 
 
 @plugin_pool.register_plugin
-class GenericFieldPlugin(PlusPluginBase):
+class GenericFieldPlugin(PlusPlugin):
     module = 'form'
     cache = False
     name = _('Field')
