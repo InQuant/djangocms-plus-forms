@@ -60,7 +60,7 @@ class PlusFormBase(forms.ModelForm):
         # check if field value should be added to submitted forms via cleaned data (e.g. Captcha Field)
         _cleaned_data = deepcopy(self.cleaned_data)
         for key in _cleaned_data.keys():
-            if not self.fields[key].in_submitted_form_data:
+            if not getattr(self.fields[key], 'in_submitted_form_data', False):
                 self.cleaned_data.pop(key)
 
         return self.cleaned_data
