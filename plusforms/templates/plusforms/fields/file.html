@@ -1,6 +1,6 @@
 {% load cms_tags plusforms i18n %}
 {% load plusforms %}
-<div class="form-group{% if request.POST and not field.errors %} was-validated{% endif %}">
+<div  {{ instance.get_attributes }}>
 
   <div>{{ field.label_tag }}</div>
 

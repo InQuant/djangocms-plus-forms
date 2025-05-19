@@ -1,7 +1,9 @@
 {% load cms_tags i18n sekizai_tags static %}
 
 {% block form %}
-  <form id="{{ form_id }}" action="{{ request.path }}" method="post" enctype="multipart/form-data" novalidate>
+  <form id="{{ form_id }}" action="{{ request.path }}" method="post" enctype="multipart/form-data" novalidate
+   {{ instance.get_attributes }}
+   >
     {% csrf_token %}
     {% block form_header %}
       {% if request.POST %}

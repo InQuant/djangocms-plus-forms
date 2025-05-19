@@ -5,6 +5,7 @@ from cms.plugin_pool import plugin_pool
 from cmsplus.models import PlusItem
 from cmsplus.plugin_base import PlusPlugin
 from cmsplus.forms import PlusPluginFormBase
+from cmsplus.cms_plugins.bootstrap.fields import SpacingWidget
 from django import forms
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -13,9 +14,10 @@ from django.core.validators import get_available_image_extensions
 from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
-from plusforms.form_fields import get_available_form_fields, get_class
-from plusforms.forms import PlusFormBase
-from plusforms.models import SubmittedForm
+from .form_fields import get_available_form_fields, get_class
+from .forms import PlusFormBase
+from .models import SubmittedForm, EmailVerification
+from .utils import send_email_confirmation, send_notification_email
 
 logger = logging.getLogger('plusforms')
 
@@ -82,12 +84,23 @@ EXT_CHOICES = sorted(EXT_CHOICES, key=lambda i: i[0])
 class GenericFormPluginForm(PlusPluginFormBase):
     form_id = forms.SlugField(label=_('Form identifier'), required=True)
 
+    verify_email = forms.BooleanField(
+        required=False, initial=False,
+        label='Verify e-Mail',
+        help_text='Verifies the e-Mail address of the form sender. Use this together with an "Email field"-id: "email_to_verify" to avoid SPAM!'
+    )
+
     success_text = forms.CharField(label=_('Success text'), widget=forms.Textarea)
     button_text = forms.CharField(label=_('Submit button text'), required=True, initial=_('Submit'))
 
     name = forms.CharField(label=_('Name'), required=False)
     description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea)
 
+    notify = forms.EmailField(
+        required=False,
+        label='Notify',
+        help_text='(Internal) email to notify about a new form data set. (will be sent after successful email verification)'
+    )
 
 def snake_to_camel(s):
     """ huhu_foo_bar -> HuhuFooBar
@@ -161,9 +174,43 @@ class GenericFormPlugin(PlusPlugin):
 
             # validate and save
             if self.user_form.is_valid():
+
+                if instance.config.get('verify_email'):
+                    email = self.user_form.cleaned_data.get('email_to_verify')
+                    if not email:
+                        raise ValidationError('verify_email is True, but no field with id: "email_to_verify" found.')
+
                 try:
                     self.pre_save(request, context, instance, self.user_form)
                     obj = self.user_form.save()
+                    context['user_msg'] = instance.config.get('success_text', _('Form saved.'))
+
+                    # Check whether email needs verification
+                    user = request.user
+                    needs_verification = (
+                        instance.config.get('verify_email') and (
+                            not user.is_authenticated or  # anonymous user
+                            (user.email and user.email.lower() != email.lower()) # different email
+                        )
+                    )
+
+                    can_be_processed = True
+                    if needs_verification:
+                        ev, created = EmailVerification.objects.get_or_create(email=email)
+                        if not ev.verified:
+                            can_be_processed = False
+
+                            # Trigger email confirmation only if not already verified
+                            send_email_confirmation(request, email)
+                            context['user_msg'] = _('Your request will be processed after email confirmation - '
+                                                    'please check your inbox!')
+                            obj.email_to_verify = email
+                            obj.is_processed = False
+                            obj.save()
+
+                    if instance.config.get('notify') and can_be_processed:
+                        send_notification_email(instance.config.get('name'), obj, instance.config.get('notify'))
+
                     context['plus_form'] = obj
                     self.post_save(request, context, instance, obj)
                 except Exception as e:
@@ -185,6 +232,8 @@ class FormFieldPluginForm(PlusPluginFormBase):
         help_text=_('This will be the id and name attribute of this input. Needs to be unique inside a form!'),
         required=True
     )
+
+    spacing = forms.CharField(label="Spacing", required=False, initial='mb-3', widget=SpacingWidget)
 
     required = forms.BooleanField(label=_('Required'), initial=False, required=False)
 
@@ -284,33 +333,33 @@ class FormFieldPluginForm(PlusPluginFormBase):
 class GenericFieldPlugin(PlusPlugin):
     module = 'form'
     cache = False
-    name = _('Field')
+    name = 'Field'
     allow_children = True
     form = FormFieldPluginForm
+    render_template = None
     fieldsets = (
         (None, {
             'fields': (
-                'field_type',
-                'field_id',
+                ('field_id', 'field_type'),
                 'required',
-                'label',
+                ('label', 'field_placeholder'),
                 'help_text',
-                'field_placeholder',
+                'spacing',
             )
         }),
-        (_('TextField Options'), {
+        ('TextField Options', {
             'classes': ('text_field--wrapper',),
             'fields': ('max_length',),
         }),
-        (_('FileInput Options'), {
+        ('FileInput Options', {
             'classes': ('file_input--wrapper',),
             'fields': ('max_mb', 'allowed_extensions'),
         }),
-        (_('ImageInput Options'), {
+        ('ImageInput Options', {
             'classes': ('image_input--wrapper',),
             'fields': ('min_px_width', 'min_px_height', 'px_width', 'px_height'),
         }),
-        (_('Select Options'), {
+        ('Select Options', {
             'classes': ('select-options--wrapper',),
             'fields': ('choices_dynamic', 'choices_dynamic_filter', 'choices_static', 'choices_allow_empty'),
         }),
@@ -364,6 +413,12 @@ class GenericFieldPlugin(PlusPlugin):
         context = super().render(context, instance, placeholder)
         field_id = instance.glossary.get('field_id')
 
+        if instance.config.get('spacing'):
+            instance.add_classes(instance.config.get('spacing'))
+
+        if instance.config.get('field_type') == 'CheckboxField':
+            instance.add_classes('form-check')
+
         if context.get('user_form'):
             form = context['user_form']
             try:
@@ -375,6 +430,9 @@ class GenericFieldPlugin(PlusPlugin):
 
             if bound_field.errors:
                 self.add_error_class(form.fields[field_id])
+            else:
+                if context['request'].POST:
+                    instance.add_classes('was-validated')
             context.update({
                 'field_id': field_id,
                 'field': bound_field,

@@ -1,5 +1,5 @@
 {% load cms_tags i18n %}
-<div class="form-group">
+<div {{ instance.get_attributes }}>
 
   {{ field.label_tag }}
 

@@ -1,5 +1,5 @@
 {% load cms_tags %}
-<div class="form-check mb-3{% if request.POST and not field.errors %} was-validated{% endif %}">
+<div {{ instance.get_attributes }}>
 
     {{ field }}
 

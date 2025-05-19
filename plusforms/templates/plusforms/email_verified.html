@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      {% if message %}
+        {% if "✅" in message %}
+          <div class="alert alert-info text-center" role="alert">
+            {{ message }}
+          </div>
+        {% else %}
+          <div class="alert alert-danger text-center" role="alert">
+            {{ message }}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="alert alert-secondary text-center" role="alert">
+          No status message available.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

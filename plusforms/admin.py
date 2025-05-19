@@ -7,9 +7,12 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from plusforms.actions import export_submitted_form_as_zip
-from plusforms.models import SubmittedForm
+from .actions import export_submitted_form_as_zip
+from .models import SubmittedForm, EmailVerification
 
+@admin.register(EmailVerification)
+class EmailVerificationAdmin(admin.ModelAdmin):
+    search_fields = ['email']
 
 @admin.register(SubmittedForm)
 class SubmittedFormAdmin(admin.ModelAdmin):
@@ -19,7 +22,7 @@ class SubmittedFormAdmin(admin.ModelAdmin):
     list_filter = ['name', ]
     readonly_fields = ['name', 'get_description_meta_data', 'get_by_user', 'uuid', 'get_form_id_meta_data']
     exclude = ['form_data', 'meta_data', ]
-    list_display = ['get_name', 'by_user', 'updated_on']
+    list_display = ['get_name', 'by_user', 'is_processed', 'email_to_verify', 'updated_on']
     actions = [export_submitted_form_as_zip, ]
 
     def get_by_user(self, obj):

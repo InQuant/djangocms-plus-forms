@@ -178,7 +178,6 @@ class EmailField(InputField):
     widget = forms.EmailInput
     name = _('Email field')
 
-
 class CheckboxField(forms.BooleanField, BaseFieldMixIn):
     name = _('Checkbox field')
     template_name = "plusforms/fields/checkbox.html"
