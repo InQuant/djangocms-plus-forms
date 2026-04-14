@@ -53,7 +53,7 @@ NOTIFY_MESSAGE = '''A new "%s" was submitted by user "%s":
 
 def send_notification_email(form_name:str, obj:SubmittedForm, email:str):
     user_name = obj.by_user.email or 'anonymous'
-    pretty = json.dumps(obj, indent=4, sort_keys=True)
+    pretty = json.dumps(obj.form_data, indent=4, sort_keys=True)
     send_mail(
         subject=f'New: {form_name}',
         message=NOTIFY_MESSAGE % (form_name, user_name, pretty),
@@ -67,7 +67,7 @@ def handle_unprocessed_forms(email:str):
     Args:
         email (str): the email address
     """
-    for sf in SubmittedForm.objects.filter(email_to_verify=email, is_process=False):
+    for sf in SubmittedForm.objects.filter(email_to_verify=email, is_processed=False):
         config = sf.meta_data.get('plugin', {}).get('glossary', {})
         if config.get('notify'):
             send_notification_email(config.get('name'), sf, config.get('notify'))
